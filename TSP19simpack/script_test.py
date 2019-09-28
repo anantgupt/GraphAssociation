@@ -12,7 +12,7 @@ from IPython import get_ipython
 from datetime import date, datetime
      
 def main():
-    datef =('results'+str(date.today().month)+'_'+str(date.today().day)
+    datef =('results/E'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
     cfg.Nf = 40 # was 50
     
