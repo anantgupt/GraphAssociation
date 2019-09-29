@@ -90,9 +90,12 @@ def get_pos_from_rd(ri, rj, di, dj, i , j, sensors):
     x_est = x_r + (sensors[i].x + sensors[j].x)/2  # shift x for linear sensor array
     vx = (ri * di - rj * dj) / sensor_sep 
     y_r2=(ri**2 + rj**2 - (sensor_sep**2)/2 - 2* (abs(x_r)**2))/2 # Square y
-    if y_r2>0: # NOTE: Discard phantoms if y can't be calculated
+    if y_r2>=0: # NOTE: Discard phantoms if y can't be calculated
         yr = np.sqrt( y_r2 ) # y estimate common across all 
-        vyr = ( (ri*di +rj*dj )/2 - vx*x_r) / yr
+        if yr==0:
+            vyr = np.inf
+        else:
+            vyr = ( (ri*di +rj*dj )/2 - vx*x_r) / yr
         pht = obt.PointTarget(x_est,yr,vx,vyr)
         return pht
     else:

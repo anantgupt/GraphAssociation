@@ -16,7 +16,7 @@ from scipy.stats import chi2
 
 def make_graph(garda, sensors, lskp=False, l2p=0):
     Ns=len(sensors)
-    tol = 0 # tolerance for range bands
+    tol = -1e-10 # tolerance for range bands (-ve implies narrower FOV)
     Lp1, Lp2, Lt1, Lt2, Nnodes =0,0, 1,1,0
     G=[]
     for sid, gard in enumerate(garda):

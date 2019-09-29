@@ -316,7 +316,7 @@ def main():
     axs[0,0].set_title('Expected P(Detection), Miss, False Alarm'),axs[0,0].set_ylabel(r'$P_D$')
     axs[0,0].set_xlabel(cfg.xlbl),axs[0,0].grid(True),axs[0,0].legend()
     axs[0,1].scatter(recall_m, precision_m)
-    axs[0,1].set_title('Precision vs Recall'),axs[0,1].set_ylabel('Precision'),axs[0,1].set_xlabel('Recall'),axs[0,1].grid(True),axs[0,1].legend()
+    axs[0,1].set_title('Precision vs Recall'),axs[0,1].set_ylabel('Precision'),axs[0,1].set_xlabel('Recall'),axs[0,1].grid(True)
     axs[1,0].hist([Nob + ospa_error1[j,:,2] for j,Nob in enumerate(Noba)])
     axs[1,0].set_title('Histogram of detections (system-level)')
     resizefig(plt, 8,6)
@@ -361,7 +361,11 @@ def main():
                 sensorsp = [ob.Sensor(x,0) for x in sx]
                 phlist = grca[j][i]
                 plt.clf()
-                for gr in phlist: plt.quiver(gr.x, gr.y,gr.vx,gr.vy, color='r', headwidth = 4, headlength=6, headaxislength=5)
+                for gr in phlist: 
+                    if abs(gr.vx)+abs(gr.vy)>0:
+                        plt.quiver(gr.x, gr.y,gr.vx,gr.vy, color='r', headwidth = 4, headlength=6, headaxislength=5)
+                    else:
+                        plt.plot(gr.x, gr.y, 'ro')
                 pr.plot_scene(plt, scene[:Noba[j]], sensorsp, 15, 'Scene {} with {} detections, SNR = {} dB'.format(i, np.round(np.sum(present[j,:,:],axis=1)/Nf/Noba[j],2), round(snra[j])))
                 writer.grab_frame()
     # Save variables 
