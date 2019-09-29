@@ -18,7 +18,7 @@ def main():
     
     rob_rng = [0,1,2]
     sep_th_rng = [0.5,0.9,1.1,1.5]
-    snr_rng = np.vstack((np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) #[-20,-15,-10,0,10,20]
+    snr_rng = np.hstack((np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) #[-20,-15,-10,0,10,20]
     Nsens_rng = [4,8]
     Nob_rng = np.linspace(1,31,4, dtype='int') 
     swidth_rng = [0.1, 0.2, 0.4, 0.8, 1.6, 2.4, 3.2, 4, 5]
@@ -40,21 +40,21 @@ def main():
     snr_rng2 = [-15, -10]
     Nob_rng2 = np.linspace(1,31,11, dtype='int') 
     # # SNR vS Nob
-    set_it(3, Nob_rng2, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef, snr_rng2, 'Nob','snr')
+    # set_it(3, Nob_rng2, [0,2,4],[rob_std, Nsens_std, swidth_std])
+    # run_it(datef, snr_rng2, 'Nob','snr')
     #################
     Nsens_std2 = 6
     # # Rob vs Nob 
-    set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std2, swidth_std])
-    run_it(datef, np.arange(0,Nsens_std-2),'Nob','rob')
+    # set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std2, swidth_std])
+    # run_it(datef, np.arange(0,Nsens_std-2),'Nob','rob')
     #################
-    Nsens_rng2 = [4,5,6,7,8,9,10]
+    Nsens_rng2 = np.array([4,5,6,7,8,9,10])
     Nob_rng2 = [1, 6, 16]
     # Nob vS Nsens
     set_it(2, Nsens_rng2, [0,1,4],[rob_std, snr_std, swidth_std])
     run_it(datef, Nob_rng2,'Nsens','Nob')
     ################
-    Nsens_rng2 = [5,6,7,8,9,10]
+    Nsens_rng2 = np.array([5,6,7,8,9,10])
     # Rob vS Nsens
     set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
     run_it(datef, np.arange(0,np.min(Nsens_rng)-2),'Nsens','rob')
