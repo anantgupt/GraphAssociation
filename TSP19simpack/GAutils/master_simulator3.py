@@ -383,7 +383,7 @@ def main():
         plt.figure(fignum)
         plt.savefig("{}/{}".format(cfg.folder,fignum), Transparent=True)
         pickle.dump(plt.figure(fignum), open("{}/plot{}.pickle".format(cfg.folder,fignum), "wb"))
-    plt.show()
+    plt.close('all')
 
 def resizefig(plt, x, y):
     fig = plt.gcf()

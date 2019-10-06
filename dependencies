@@ -1,0 +1,7 @@
+Install following dependencies before running example. Suggest to create a new conda environment and install dependencies
+	> numpy, scipy : conda install numpy spicy
+	> sympy : conda install sympy
+	> networkx : pip install networkx==2.3
+  	> tqdm : conda install -c conda-forge tqdm
+  	> ipykernel : conda install ipykernel
+  	> ffmpeg : conda install -c conda-forge ffmpeg

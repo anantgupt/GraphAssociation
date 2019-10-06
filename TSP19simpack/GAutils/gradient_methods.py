@@ -136,3 +136,26 @@ def d_eval(pos, sxy=[]):
         pos2[0] = pos2[0] - sxy[0] # relative x
         pos2[1] = pos2[1] - sxy[1] # relative y
     return (pos2[0]*pos2[2]+pos2[1]*pos2[3])/r_eval(pos2)
+
+# Huber 
+def huber(sg, sensors, init, itera, w=[1,0]):
+    import cvxpy as cp
+    beta_x = cp.Variable(1)
+    beta_vx = cp.Variable(1)
+    Me = sg.r * sg.d
+    Me2 = sg.r * sg.r
+    L = np.array([sensors[sid].x for sid in sg.sindx])
+    Z_mat = np.eye(sg.N)
+    Z = Z_mat[0:-1,:]-Z_mat[1:,:]
+    # Form and solve the Huber regression problem.
+    cost = (cp.atoms.sum(cp.huber(2*beta_x*(L@Z.T) - (L*L)@Z.T + Me2@Z.T, 5))
+           + cp.atoms.sum(cp.huber(beta_vx*(L@Z.T) + Me@Z.T, 5)))
+    cp.Problem(cp.Minimize(cost)).solve()
+    x_hat = beta_x.value
+    v_hat = beta_vx.value
+    # Compute yparams
+    xsa = x_hat - L
+    y_est = np.sqrt(np.mean(Me2 - xsa **2))
+    vy_est = np.mean(Me - v_hat*xsa) / y_est # Estimated using other estimates
+    
+    return [x_hat, y_est, v_hat, vy_est], cost.value

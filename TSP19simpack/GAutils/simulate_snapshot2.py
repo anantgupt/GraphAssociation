@@ -83,13 +83,13 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     if cfg.scene_plots:
         [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
         pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
-
+    # runtime[1] = time.time() - t # Note : dete this
     t = time.time()
     min_gsigs, glen, runtime[6] = grpr.get_minpaths(G1, sensors, cfgp['mode'], cfgp)
     runtime[2] = time.time() - t
     t = time.time()
     for sig in min_gsigs:
-        [dob, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , cfgp['gn_steps'], rd_wt)#lm_refine, gauss_newton
+        [dob, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , cfgp['gn_steps'], rd_wt)#lm_refine, gauss_newton, huber
         sig.state_end.mean = dob
     runtime[3] = time.time() - t
     for gtr in min_gsigs:
