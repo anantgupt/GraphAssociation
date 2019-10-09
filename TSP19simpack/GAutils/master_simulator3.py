@@ -57,8 +57,7 @@ def main():
     Ndet = np.zeros((cfg.Ninst,cfg.Nf))
     plt.close('all')
     #for plt_n in range(1,6): plt.figure(plt_n), plt.clf()
-    
-    print('CPU count = ',str(mp.cpu_count()))
+
     #%%
     # Arrange sensors in worst case to build up a scene
     sensorsa = []
@@ -72,7 +71,12 @@ def main():
     # TODO NOTE: Min threshold might not be satisfied for all sensors!!
     scenea = [pr.init_random_scene(max(Noba), sensorsa, cfg.sep_th, seeda[f]) for f in range(Nf)]
     # Step 1: Init multiprocessing.Pool()
-    pool = mp.Pool(mp.cpu_count())
+    if cfg.N_cpu <1:
+        N_cpu = mp.cpu_count()
+    else:
+        N_cpu = cfg.N_cpu
+    pool = mp.Pool(N_cpu)
+    print('Using CPU count = ',str(N_cpu))
     # snap = partial(sim2.run_snapshot, )
     for inst in tqdm(range(cfg.Ninst), desc='Instances'):
         Nob = Noba[inst]
