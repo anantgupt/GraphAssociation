@@ -36,13 +36,13 @@ def main():
 
     Nsens_std2 = 6
     ################
-    Nsens_rng2 = np.array([4,5,6,7,8,9,10])
+    Nsens_rng2 = np.array([4,5,6,7,8,9,10,12])
     # Rob vS Nsens
     set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
     run_it(datef, np.arange(0,np.min(Nsens_rng)-1),'Nsens','rob')
 
     ################
-    swidth_rng2 = [0.1, 0.2, 0.4, 0.8, 1.2, 1.6]
+    swidth_rng2 = [0.25, 0.5, 1, 2, 3, 4, 6, 8]
     # Rob vS swidth
     set_it(4, swidth_rng2, [1,3,2],[snr_std, Nob_std, Nsens_std2])
     run_it(datef, np.arange(0,Nsens_std2-1),'swidth','rob')

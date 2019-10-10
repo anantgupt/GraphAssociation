@@ -83,7 +83,7 @@ def main():
         Nsens = Nsensa[inst]
         swidth = cfg.swidtha[inst]
         # Generate sensor each time
-        sx=np.linspace(-swidth, swidth,Nsens)
+        sx=np.linspace(-swidth/2, swidth/2,Nsens)
         sensors = [ob.Sensor(x,0) for x in sx]
 
         cfgp = {'Nsel': [],# Genie info on # targets

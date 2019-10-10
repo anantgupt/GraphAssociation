@@ -45,7 +45,7 @@ mode = 'Relax' # Choose:'Brute','DFS','Relax','Brute_iter'
 #crb_min =np.array([1e-2, 1e-2]) # Empirical variance of Range, Doppler (For LLR)
 hscale= np.array([8,64]) # Growth in thresold (squared for fitting threshold)
 incr = 2 # Increment in association iterations
-hN = 8 # Relaxation iterations
+hN = 20 # Relaxation iterations
 ag_pfa = 1e-2 # Sets beginning value of geometric fitting thres 
 al_pfa = 1e-2 # Sets beginning value of likelihood thres
 # Gauss Newton
