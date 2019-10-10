@@ -25,7 +25,7 @@ snra = -10*np.ones(Ninst)
 Nsensa = 4*np.ones(Ninst, dtype='int')
 Noba = 10*np.ones(Ninst, dtype='int')  # number of targets
 swidtha = 2*np.ones(Ninst, dtype='int') # Array width
-pmiss=0.1 # Miss probability
+pmiss=0.05 # Miss probability
 # Iterable descriptors
 rng_used = Nsensa
 xlbl = 'Num sensors' #'SNR (dB)' # 'Num objects', 'Num sensors'
