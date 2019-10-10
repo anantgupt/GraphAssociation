@@ -385,9 +385,9 @@ def main():
     
     handle.write('Pmiss={}\n'.format(cfg.pmiss))
     handle.write('Est_Algo={}\n'.format(cfg.estalgo))
-    handle.write('NOMP: OSPS={}, n_pfa={}, n_Rc={}\n'.format(cfg.osps,cfg.n_pfa,cfg.n_Rc)
-    handle.write('GA-DFS: ag_pfa={}, al_pfa={}'.format(cfg.ag_pfa, cfg.al_pfa)
-    handle.write('Relax: hN={}, hscale={}, incr ={}'.format(cfg.hN, cfg.hscale, cfg.incr)
+    handle.write('NOMP: OSPS={}, n_pfa={}, n_Rc={}\n'.format(cfg.osps,cfg.n_pfa,cfg.n_Rc))
+    handle.write('GA-DFS: ag_pfa={}, al_pfa={}'.format(cfg.ag_pfa, cfg.al_pfa))
+    handle.write('Relax: hN={}, hscale={}, incr ={}'.format(cfg.hN, cfg.hscale, cfg.incr))
     handle.write('Misc: rd_wt={}, mode={}, gn_steps={}'.format(cfg.rd_wt, cfg.mode, cfg.gn_steps))
 
     for fignum in range(1,12):
