@@ -200,10 +200,20 @@ def main():
         plt.subplot(1,2,i-2)
         # plt.errorbar(rng_used, np.mean(ospa_error1[:,:,i], axis=1), np.std(ospa_error1[:,:,i], axis=1), color='r')
         # plt.errorbar(rng_used, np.mean(np.sqrt(crbpv[:,:,i-3]), axis=(1)), np.std(np.sqrt(crbpv[:,:,i-3]), axis=(1)), color='k')
-        plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(PVerror[:,:,i-3]),axis=1)#/np.mean(Ndet,axis=1)
-                ), color='r', label='RMSE')
-        plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(crbpv[:,:,i-3]),axis=1)
-                ), 'k--', label='CRB'),plt.yscale('linear')
+        # plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(PVerror[:,:,i-3]),axis=1)#/np.mean(Ndet,axis=1) #Original
+        if True:
+            # Find where are non zero PVerrors
+            PVTemp = PVerror[:,:,i-3].T
+            CRBTemp = crbpv[:,:,i-3].T
+            plt.plot(rng_used, 10*np.log10([np.mean(np.sqrt(PVi[PVi>0])) for PVi in PVTemp]
+                    ), color='r', label='RMSE')
+            plt.plot(rng_used, 10*np.log10([np.mean(np.sqrt(CRBT[PVi>0])) for (PVi,CRBT) in zip(PVT,CRBTemp)]
+                    ), 'k--', label='CRB'),plt.yscale('linear')
+        else:
+            plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(PVerror[:,:,i-3]),axis=1)
+                    ), color='r', label='RMSE')
+            plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(crbpv[:,:,i-3]),axis=1)
+                    ), 'k--', label='CRB'),plt.yscale('linear')
         # plt.subplot(2,2,i)
         # for j in range(crbpv.shape[1]):
         #     plt.plot(rng_used, np.sqrt(PVerror[:,j,i-3]), color='r')
@@ -387,8 +397,8 @@ def main():
     handle.write('Pmiss={}\n'.format(cfg.pmiss))
     handle.write('Est_Algo={}\n'.format(cfg.estalgo))
     handle.write('NOMP: OSPS={}, n_pfa={}, n_Rc={}\n'.format(cfg.osps,cfg.n_pfa,cfg.n_Rc))
-    handle.write('GA-DFS: ag_pfa={}, al_pfa={}'.format(cfg.ag_pfa, cfg.al_pfa))
-    handle.write('Relax: hN={}, hscale={}, incr ={}'.format(cfg.hN, cfg.hscale, cfg.incr))
+    handle.write('GA-DFS: ag_pfa={}, al_pfa={}\n'.format(cfg.ag_pfa, cfg.al_pfa))
+    handle.write('Relax: hN={}, hscale={}, incr ={}\n'.format(cfg.hN, cfg.hscale, cfg.incr))
     handle.write('Misc: rd_wt={}, mode={}, gn_steps={}'.format(cfg.rd_wt, cfg.mode, cfg.gn_steps))
 
     for fignum in range(1,12):
