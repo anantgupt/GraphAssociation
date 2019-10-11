@@ -207,7 +207,7 @@ def main():
             CRBTemp = crbpv[:,:,i-3]
             plt.plot(rng_used, 10*np.log10([np.mean(np.sqrt(PVi[PVi>0])) for PVi in PVTemp]
                     ), color='r', label='RMSE')
-            plt.plot(rng_used, 10*np.log10([np.mean(np.sqrt(CRBT[PVi>0])) for (PVi,CRBT) in zip(PVT,CRBTemp)]
+            plt.plot(rng_used, 10*np.log10([np.mean(np.sqrt(CRBT[PVi>0])) for (PVi,CRBT) in zip(PVTemp,CRBTemp)]
                     ), 'k--', label='CRB'),plt.yscale('linear')
         else:
             plt.plot(rng_used, 10*np.log10(np.mean(np.sqrt(PVerror[:,:,i-3]),axis=1)
