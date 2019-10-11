@@ -55,7 +55,7 @@ def init_random_scene(Nt, sensors, sep_th = 0, seed_val = []):
         np.random.seed(seed_val)# was 42
     while len(scene)<Nt:
         newtarget = obt.PointTarget(-8+np.random.rand(1) *16, 2+np.random.rand(1) *10, 20 * np.random.rand(1) -10, 20*np.random.rand(1) -10, 0.1, 1)
-        [valid, garda] = check_minsep(scene, sensors, garda, newtarget, sep_th)
+        [valid, garda] = check_minsep(scene, sensors, garda, newtarget, sep_th, False)
         if valid: scene.append(newtarget)
     return scene
 

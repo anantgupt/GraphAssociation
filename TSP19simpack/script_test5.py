@@ -29,7 +29,7 @@ def main():
     Nob_std=10 #3
     swidth_std = 2 #4
     
-    sep_th_std = 0.0
+    sep_th_std = 1.1
     cfg.sep_th = sep_th_std
     cfg.estalgo = 2
     cfg.N_cpu = 12
