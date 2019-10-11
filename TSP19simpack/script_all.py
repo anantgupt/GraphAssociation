@@ -4,11 +4,9 @@ Created on Wed May  1 20:54:50 2019
 Analyzed effect of FFT, NOMP (NOMP better, see May19 slides or workflowy)
 @author: gupta
 """
-import GAutils
 import GAutils.master_simulator3 as ms3
 import GAutils.config as cfg
 import numpy as np
-from IPython import get_ipython
 from datetime import date
 
 def set_it(itrx, xval, idxa, val):
@@ -27,49 +25,82 @@ def run_it(datef, rng, itrx, itry):
         cfg.folder= datef +itrx+'-'+itry+str(i)
         print('Running '+str(num)+'/'+str(len(rng)))
         ms3.main()
+   
         
 def main():
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)+'/fig_')
-    cfg.Nf = 20 # was 50
+    cfg.Nf = 100 # was 50
     
     rob_rng = [0,1,2]
-    sep_th_rng = [0.5,0.9,1.1,1.5]
-    snr_rng = [-20,-15,-10,0,10]
+    snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
     Nsens_rng = [4,5,6,8,10,12]
-    Nob_rng = np.linspace(1,28,9, dtype='int') 
-    swidth_rng = [0.1,0.2,0.4,0.8,1.6,2.4,3.2,4,5]
+    Nob_rng = np.linspace(1,31,16, dtype='int') 
+    swidth_rng = [0.25,0.5,1,2,3,4,5,6,8]
     
     rob_std = 1
-    sep_th_std = 0.8
+    sep_th_std = 1
     snr_std = -10
     Nsens_std=4
     Nob_std=10
-    swidth_std = 2
+    swidth_std = 4
     
     cfg.sep_th = sep_th_std
 
-    # Rob vS Nob
+    ##################
+    # Nob vs SNR
+    Nob_rng2 = [1,10, 20, 30]
+    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+    run_it(datef, Nob_rng2, 'snr','Nob')
+    ##################
+    snr_rng2 = [-15, -10]
+    # # SNR vS Nob
+    set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+    run_it(datef, snr_rng2, 'Nob','snr')
+    #################
+    Nsens_std2 = 6
+    rob_rng2 = [0, 1, 2]
+    # # Rob vs Nob 
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
-    run_it(datef, np.arange(0,Nsens_std-2),'Nob','rob')
+    run_it(datef, rob_rng2,'Nob','Rob')
+    #################
+    Nsens_rng2 = [4,6]
+    # Nsens vs Nob
+    set_it(3, Nob_rng, [0,1,4],[rob_std, snr_std, swidth_std])
+    run_it(datef, Nsens_rng2,'Nob','Nsens')
+    ####################
+    Nob_rng2 = [5, 10, 15]
+    # Nob vS Nsens
+    set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
+    run_it(datef, Nob_rng2,'Nsens','Nob')
+    ################
+#    swidth_rng2 = [0.1, 0.2, 0.4, 0.8]
+    Nsens_std2= 6
     # Rob vS swidth
-    set_it(4, swidth_rng, [1,2,3],[snr_std, Nsens_std, Nob_std])
-    run_it(datef, np.arange(0,Nsens_std-2),'swidth','rob')
-    
-    # Rob vS SNR
-    set_it(1, snr_rng, [2,3,4],[Nsens_std, Nob_std, swidth_std])
-    run_it(datef, np.arange(0,Nsens_std-2),'snr','rob')
-
+    set_it(4, swidth_rng, [1,3,2],[snr_std, Nob_std, Nsens_std2])
+    run_it(datef, np.arange(0,Nsens_std2-1),'swidth','rob')
+    ################
+    Nsens_rng2 = np.array([5,6,7,8,9,10, 12])
     # Rob vS Nsens
-    set_it(2, Nsens_rng, [1,3,4],[snr_std, Nob_std, swidth_std])
-    run_it(datef, np.arange(0,np.min(Nsens_rng)-2),'Nsens','rob')
+    set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
+    run_it(datef, np.arange(0,np.min(Nsens_rng)-1),'Nsens','rob')
 
+    ################
+    rob_rng2 = [0, 1, 2]
+    cfg.estalgo = 1
+    # DFT vS Nob
+    set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
+    run_it(datef, rob_rng2,'Nob','Rob')
+    ################
+    # DFT vS Nsens
+    set_it(2, Nsens_rng, [1,3,4],[snr_std, Nob_std, swidth_std])
+    run_it(datef, rob_rng2,'Nsens','rob')
+    ################
+    # DFT vS snr
+    set_it(1, snr_rng, [2,3,4],[Nsens_std, Nob_std, swidth_std])
+    run_it(datef, rob_rng2,'swidth','rob')
 
     
 if __name__ == "__main__":
     __spec__ = None
-    ipython = get_ipython()
-    ipython.magic('%load_ext autoreload')
-    ipython.magic('%autoreload 2')    
-    ipython.magic('%matplotlib')
-    
+
     main()
