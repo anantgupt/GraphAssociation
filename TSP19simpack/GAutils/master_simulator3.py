@@ -103,6 +103,7 @@ def main():
                 'hN': cfg.hN,
                 'ag_pfa':cfg.ag_pfa,
                 'al_pfa':cfg.al_pfa,
+                'Tlen':cfg.Tlen,
                 # Gauss Newton
                 'gn_steps':cfg.gn_steps
                 }

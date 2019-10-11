@@ -241,7 +241,7 @@ def Brute_iter(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
         if stopping_cr:# Until path of length minP left in Graph
             break
         scale = scale*cfgp[incr]
-        if glen[-1]-glen[-2]==0 and minP>len(sensors)-cfgp['rob']:
+        if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']:
             minP-=1
     return glen, L3
         
@@ -305,7 +305,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
         if stopping_cr:# Until path of length minP left in Graph
             break
         scale = scale*cfgp['incr']
-        if glen[-1]-glen[-2]==0 and minP>len(sensors)-cfgp['rob']:
+        if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']:
             minP-=1
     return glen, L3
     

@@ -48,6 +48,7 @@ incr = 2 # Increment in association iterations
 hN = 20 # Relaxation iterations
 ag_pfa = 1e-2 # Sets beginning value of geometric fitting thres 
 al_pfa = 1e-2 # Sets beginning value of likelihood thres
+Tlen = 3 # At least Tlen nodes in track
 # Gauss Newton
 gn_steps = 5
 folder = 'rawfigs2'
