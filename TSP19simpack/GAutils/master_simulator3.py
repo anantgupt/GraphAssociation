@@ -185,6 +185,7 @@ def main():
     for i in range(4,7):
         pltn[i]= plt.plot(rng_used, runtime[i,:], label = alg_name[i]),plt.grid(True)
     plt.legend(),plt.xlabel(cfg.xlbl),plt.ylabel('Number of Tracks visited'),plt.title('Association Complexity')
+    plt.yscale('log')
     fig = plt.gcf()
     fig.set_size_inches(8.8,4.8)
     plt.tight_layout()
