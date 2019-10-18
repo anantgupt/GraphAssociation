@@ -130,6 +130,41 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             self.Zdict[Ninp]=Zt
             self.Widict[Ninp] = Wit
     
+    def get_newfit_error(cls, sensors, rnew, dnew, sidnew):
+        # Reports geometry fitting error for given R,D pair
+        rn = np.vstack((cls.r, rnew))
+        dn = np.vstack((cls.d, dnew))
+        Me = rn*dn
+        Me2 = rn*rn
+        Ns = len(rn)
+        sindx_new = cls.sindx[si]+sidnew
+        L = np.array([sensors[si].x for si in sindx_new])
+        CRB = np.array([sensors[si].getCRB()/(abs(cls.g[si])**2) for si in sindx_new])
+        # Get constants
+        Z = cls.Zdict[Ns-2]
+        Wi = cls.Widict[Ns-2]
+        # Main estimator
+        u_vec = Z.T @ Wi @ Z @ L/(L.T @ Z.T @ Wi @ Z @ L)
+        # rd fitting
+        v_hat = -Me @ u_vec # v_x estimate
+        M1var = (np.sum( CRB * np.array([dn**2, rn**2]).T,1) 
+        + np.prod(CRB,1) )
+#        lb_vx_std = np.sqrt(M1var @ (u_vec**2)) # Std. dev in estimating vx
+        # Fitting Error compuation (For each target)
+        N_mat = Me @ Z.T + (v_hat *L) @(Z.T) # eta
+        V_mat = N_mat @ Wi  # Optimal dual var.
+        
+        # r2 fitting
+        x_hat = -(Me2 - ( L**2 )) @ u_vec/2
+        M2var = (4*CRB[:,0] * np.array( rn**2) + CRB[:,0]**2)# Ignoring higher order terms
+#        lb_x_std = np.sqrt(M2var @ (u_vec**2)/4) # std. dev in estimating x
+        # Fitting Error compuation (For each target)
+        N_mat2 = Me2 @ Z.T + 2*x_hat *L @ (Z.T) - ( L*L ) @ Z.T # eta
+        U_mat = N_mat2 @ Wi # Optimal dual var.
+
+        gc = ((cfg.rd_wt[0]*(V_mat@Z/2)**2/M1var + cfg.rd_wt[1]*((U_mat@Z/2)**2)/M2var))
+        return sum(gc)
+
     def get_partialest(cls, sensors, idx, gprev, modf):# returns estimate for given index of nodes
         rn = np.array([cls.r[si] for si in idx])
         dn = np.array([cls.d[si] for si in idx])

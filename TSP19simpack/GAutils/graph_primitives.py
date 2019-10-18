@@ -176,7 +176,28 @@ def get_l_thres(sig, scale, al_pfa):
     else:
         return scale[0]*chi2.isf(al_pfa, 2*sig.N, loc=0, scale=1)# TODO: Wald statistic is normalized by CRB
 
-def get_order(G, new_nd, target_nds, path, sensors):
+def get_order(G, new_nd, target_nds, path): # Slim version, Oct 2019
+    if target_nds:
+        g_cost=[]
+        for tnd in target_nds:
+            if tnd==None:
+                continue
+            if path.N<2: # Cannot calculate straigtness with 2 nodes
+                g_cost.append(np.inf)
+            else:   
+                try:
+                    new_cost = path.get_newfit_error(tnd.r, tnd.d, tnd.sid)
+                except ValueError as err:
+                    print(err.args)
+                    continue # Can print error happened                    
+                g_cost.append(new_cost) # use trace maybe
+        srtind = np.argsort(g_cost)
+        childs = [target_nds[ind] for ind in srtind]
+    else:
+        childs=[]
+    return childs
+
+def get_order2(G, new_nd, target_nds, path, sensors): # Heavy
     if target_nds:
         child_sigst = []
         g_cost=[]
@@ -201,11 +222,13 @@ def get_order(G, new_nd, target_nds, path, sensors):
     return childs, child_sigs
 
 def Brute(G, nd, sig, sel_sigs, pid, sensors, cfgp, scale, minP): # recursive implementation
-    childs, child_sigs = get_order(G, nd, nd.lkf, cp.copy(sig), sensors)
+    childs = get_order(G, nd, nd.lkf, sig)
+    # childs, child_sigs = get_order(G, nd, nd.lkf, cp.copy(sig), sensors)
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     L3 = 0
-    for (ndc, ndc_sig) in zip(childs, child_sigs):# Compute costs for all neighbors
+    for ndc in childs:# Compute costs for all neighbors
         if not ndc.visited:
+            ndc_sig = cp.copy(sig).add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
             pnext = cp.copy(pid)
             pnext.append(ndc.oid)
             L3+=Brute(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, scale, minP)
@@ -308,8 +331,61 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
         if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']:
             minP-=1
     return glen, L3
-    
-def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # recursive implementation
+
+def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # code cleanup
+    if sig==None:
+        return 0
+    cand_sig =[]
+    llr_min = np.inf
+    L3 = 0 # Count edges visited
+    ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
+    if not nd.visited:# Check if tracks could be joined
+        childs = get_order(G, nd, nd.lkf, sig)
+        L3+=len(childs) # If counting all edges, make 1
+        for ndc in childs:# Compute costs for all neighbors
+            if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
+            if not ndc.visited:
+                pnext = cp.copy(pid)
+                pnext.append(ndc.oid)
+                ndc_sig = cp.copy(sig).add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
+                L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, scale, opt)
+
+        if cand_sig: # Check if node got visited by better track
+            if nd.visited:
+                if llr_min < sel_sigs[nd.used].llr:
+                    # Erase existing track without nd
+                    sig_temp = sel_sigs[nd.used]
+                    sel_sigs[nd.used] = None
+                    update_G(G, sig_temp.sindx,sig_temp.pid, False, None)# Mark new ones as visited
+                else:
+                    cand_sig = []
+
+        if not nd.visited:# check for min cost(if node not used)
+            if sig.N>=minP:
+                l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
+                L3+=1 # If ONLY Counting paths, make 1
+#                print(l_cost, get_l_thres(sig), g_cost, get_g_thres(sig), pid )
+                if l_cost < get_l_thres(sig, scale, al_pfa) and abs(sum(sig.gc))<get_g_thres(sig, scale, ag_pfa): # Based on CRLB
+                    if path_check(G, sig, pid):
+                        sig.llr = l_cost
+                        sig.pid = pid
+                        sel_sigs.append(sig)
+                        update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
+                        # sig in this list should be updated whenever in nd is updated
+    if cand_sig:# Replace with the one which minimizes LLR
+        # Add new track at nd
+        sig_used = sel_sigs[repl_sigid]
+        for iold in range(repl_point):# MArk old as free
+            si=sig_used.sindx[iold]
+            pi=sig_used.pid[iold]
+            G[si][pi].visited = False
+            G[si][pi].used = None
+        update_G(G, cand_sig.sindx,cand_sig.pid, True, repl_sigid)# Mark new ones as visited
+        sel_sigs[repl_sigid]=cand_sig
+        print('State changed to x={}'.format(cand_sig.pid))
+    return L3
+
+def DFS2(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # recursive implementation
     
     cand_sig =[]
     llr_min = np.inf
