@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 import pickle
-from IPython import get_ipython
+# from IPython import get_ipython
 from functools import partial
 import os as os
 from tqdm import tqdm
