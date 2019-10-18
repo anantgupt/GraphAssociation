@@ -24,6 +24,7 @@ from GAutils import perf_eval as prfe
 from GAutils import config as cfg # Sim parameters
 from GAutils import graph_primitives as grpr
 from GAutils import est_algo as ea
+from GAutils import mcft as mcft
 
 # import importlib
 # importlib.reload(cfg)
@@ -74,24 +75,29 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     rd_wt = cfgp['rd_wt'] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 
      #%% Graph Algo
-    gr_centers = []
+    
     t=time.time()
-    G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
-    runtime[1] = time.time() - t
-    runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
-    _, runtime[5] = grpr.enum_graph_sigs(G1, sensors)
-    if cfg.scene_plots:
-        [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
-        pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
-    # runtime[1] = time.time() - t # Note : dete this
-    t = time.time()
-    min_gsigs, glen, runtime[6] = grpr.get_minpaths(G1, sensors, cfgp['mode'], cfgp)
-    runtime[2] = time.time() - t
+    if cfgp['mode']=='mcf':
+        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs(garda_sel, sensors)
+    else:
+        G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
+        runtime[1] = time.time() - t
+        runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
+        _, runtime[5] = grpr.enum_graph_sigs(G1, sensors)
+        if cfg.scene_plots:
+            [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
+            pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
+        min_gsigs, glen, runtime[6] = grpr.get_minpaths(G1, sensors, cfgp['mode'], cfgp)
+    runtime[2] = time.time() - t # Total time (Make graph+traverse graph)
+
     t = time.time()
     for sig in min_gsigs:
-        [dob, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , cfgp['gn_steps'], rd_wt)#lm_refine, gauss_newton, huber
+        _,raw_ob = sig.get_rd_fit_error(sensors, cfgp['fu_alg'])
+        [dob, nlls_var] = gm.gauss_newton(sig, sensors,[raw_ob.x,raw_ob.y,raw_ob.vx,raw_ob.vy] , cfgp['gn_steps'], rd_wt)#lm_refine, gauss_newton, huber
         sig.state_end.mean = dob
-    runtime[3] = time.time() - t
+    runtime[3] = time.time() - t # Time to Refine
+
+    gr_centers = []
     for gtr in min_gsigs:
         dob = gtr.state_end.mean
         gr_centers.append(ob.PointTarget(dob[0], dob[1], dob[2], dob[3]))

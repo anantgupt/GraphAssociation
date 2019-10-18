@@ -15,6 +15,9 @@ def main():
     datef =('results/E'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
     cfg.Nf = 4 # was 50
+    cfg.fu_alg = 'ls'
+    cfg.mode = 'Relax'
+
     
     rob_rng = [0,1,2]
     sep_th_rng = [0.5,0.9,1.1,1.5]
@@ -37,11 +40,11 @@ def main():
     # set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
     # run_it(datef, Nob_rng, 'snr','Nob')
     ##################
-    snr_rng2 = [-15, -10]
-    Nob_rng2 = np.linspace(1,31,11, dtype='int') 
+    snr_rng2 = [-15, -10, 0]
+    Nob_rng2 = np.linspace(1,31,6, dtype='int') 
     # # SNR vS Nob
-    # set_it(3, Nob_rng2, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    # run_it(datef, snr_rng2, 'Nob','snr')
+    set_it(3, Nob_rng2, [0,2,4],[rob_std, Nsens_std, swidth_std])
+    run_it(datef, snr_rng2, 'Nob','snr')
     #################
     Nsens_std2 = 6
     swidth_rng2 = [0.1, 0.2, 0.4, 0.8]
@@ -64,8 +67,8 @@ def main():
     ################
     swidth_rng2 = [0.1, 0.2, 0.4, 0.8]
     # Rob vS swidth
-    set_it(4, swidth_rng2, [1,3,2],[snr_std, Nob_std, Nsens_std2])
-    run_it(datef, np.arange(0,Nsens_std2-2),'swidth','rob')
+    # set_it(4, swidth_rng2, [1,3,2],[snr_std, Nob_std, Nsens_std2])
+    # run_it(datef, np.arange(0,Nsens_std2-2),'swidth','rob')
 
 def set_it(itrx, xval, idxa, val):
     it_name=['roba','snra','Nsensa','Noba','swidtha']

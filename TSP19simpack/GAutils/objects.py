@@ -196,6 +196,8 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]
+        if Ns<3: # Can't solve if Ns<3
+            mode='ls'
         if mode=='ls':
             # Main estimator
             u_vec = Z.T @ Wi @ Z @ L/(L.T @ Z.T @ Wi @ Z @ L)
@@ -219,7 +221,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             g_nu2 = np.sqrt(np.sum(N_mat2 * U_mat) - np.sum((U_mat@Z)**2)/4)
             E1 = (V_mat@Z/2)**2#/M1var
             E2= (U_mat@Z/2)**2#/M2var
-            print (E1,E2)
+            # print (E1,E2)
 
         elif mode=='huber':
             if all_flag:

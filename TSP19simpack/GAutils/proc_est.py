@@ -140,7 +140,8 @@ def plot_orderedlinks(ordered_links, garda, sensors, rd_wt, fignum, plt):
         edge_alphas.append(d/Amax)
 
     plt.figure(fignum)
-    nodes = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color='black')
+    nx.draw_networkx(G, pos, edge_color=edge_alphas,
+                               edge_cmap=plt.cm.YlOrRd, width=1.5)
     edges = nx.draw_networkx_edges(G, pos, node_size=node_sizes, arrowstyle='->',
                                arrowsize=10, edge_color=edge_alphas,
                                edge_cmap=plt.cm.YlOrRd, width=1.5)
@@ -216,7 +217,8 @@ def plot_graph(Gin, sigs, sensors, rd_wt, fignum, plt, garda, mode=0):
         edge_alphas.append(d/Amax)
 
     plt.figure(fignum)
-    nodes = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color='black')
+    nx.draw_networkx(G, pos,  edge_color=edge_alphas,
+                               edge_cmap=plt.cm.copper_r, width=1.5)
     edges = nx.draw_networkx_edges(G, pos, node_size=node_sizes, arrowstyle='->',
                                arrowsize=10, edge_color=edge_alphas,
                                edge_cmap=plt.cm.copper_r, width=1.5)
@@ -314,4 +316,121 @@ def compute_yparams2(sensors, signatures, same_size=True): # Only for old method
 # def traingulate(r1, r2, d1, d2, lc, lij):
 #     xr = (r1**2 - r2**2) / (2 * lij)
 #     ys = np.sqrt( (r1**2 + rj**2 - (sensor_sep[j]**2)/2 - 2* (abs(x_r)**2))/2 )
+
+## Elementary MAx Flow 
+def plot_graph2(Gin, sigs, sensors, rd_wt, fignum, plt, garda, mode=0):
+    G = nx.DiGraph()
+    Ns = len(sensors)
+    s = Ns-1
+    Lmax = max([len(Ginc) for Ginc in Gin])
+    node_id = [0]
+    pos={}
+    ed_lbl={}
+    edge_alphas=[]
+    mle_llr =[]
+    ra = []
     
+    for s in range(Ns):
+        L =len(Gin[s])
+        ra.append([Gin[s][i].r for i in range(L)])
+        for l in range(L): 
+            G.add_node(node_id[s]+l, ids=[s,l] )
+            pos.update({node_id[s]+l:[s/Ns,l/Lmax]})
+#            if s==Ns-1: # Sink
+#                G.add_edge(so_no, node_id[s]+l, capacity=CMAX)
+#            if s==0:
+#                G.add_edge(node_id[s]+l, si_no, capacity=CMAX)
+        node_id += [node_id[s]+L]
+
+    for sig in sigs:
+        for i in range(sig.N-1):
+            sid = sig.sindx[i] # Source sensor id
+            did = sig.sindx[i+1] # Dest sensor id
+            sr = sig.r[i]
+            sd = sig.d[i]
+            spid = node_id[sid]+ra[sid].index(sr)# Source node id
+            dr = sig.r[i+1]
+            dd = sig.d[i+1]
+            dpid = node_id[did]+ra[did].index(dr)# Dest node id
+             # Add node ids from last sensor
+            if mode==0: # Compute arc llr using garda
+                trg = get_pos_from_rd(sr,dr,sd,dd,sid,did,sensors)
+                mlellr = mle.est_llr(trg, sensors, garda, rd_wt)
+            elif mode==1:
+                mlellr = -np.log(abs(sig.llr[0]))
+            else:
+                mlellr = -np.log(abs(sig.gc[i]))
+#            if sig.N > 2:
+##                print(sig.llr, sig.gc)
+#                mlellr =sig.llr[0] /(1+np.exp(-abs(sig.gc[i])))
+#            else:
+#                mlellr = 0
+            mle_llr.append(mlellr)
+            G.add_edge(spid, dpid, capacity=mlellr)
+            ed_lbl[(spid, dpid)]=mlellr
+    
+    
+    
+    #%% Add source and sink
+    Amax = np.amax(mle_llr)
+    so_no= sum([len(g) for g in Gin])
+    si_no=so_no+1
+    G.add_node(so_no)
+    pos.update({so_no:[1,0.37]})
+    G.add_node(si_no)
+    pos.update({si_no:[-0.25,0.37]})    
+    #Add source edges
+    for l in range(len(Gin[0])):
+        G.add_edge(l, si_no, capacity=Amax+1)
+    # Add sink edges
+    for l in range(len(Gin[-1])):
+        G.add_edge(so_no, so_no-1-l, capacity=Amax+1)
+        
+    G2=G.copy()
+    G = nx.algorithms.flow.edmonds_karp(G, so_no, si_no)
+    #%% Plotting
+    Amin = np.amin(mle_llr)
+    node_sizes = [10 for i in range(len(G))]
+    M = G.number_of_edges()
+    rng = Amax-Amin
+    edge_colors = [Amin + m/M*(rng) for m in range(0, M)]
+
+    for (u,v,d) in G.edges(data='capacity'):
+        edge_alphas.append(d/Amax)
+
+    plt.figure(fignum)
+#    nodes = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color='black')
+    nx.draw_networkx(G, pos, edge_color=edge_alphas,
+                               edge_cmap=plt.cm.copper_r,)
+#    nx.draw_networkx_labels(G, pos)
+    edges = nx.draw_networkx_edges(G, pos, node_size=node_sizes, arrowstyle='->',
+                               arrowsize=10, edge_color=edge_alphas,
+                               edge_cmap=plt.cm.copper_r, width=1.5, label=edge_alphas)
+    # set alpha value for each edge,  edge_color=edge_colors,
+#    i=0
+#    for (u,v,d) in G.edges(data='weight'):
+#        print(u,v,d,d/Amax)
+##        edges[i].set_alpha(d/Amax)
+##        edges[i].set_color('blue')
+#        edge_alphas.append(d/Amax)
+#        i=i+1
+
+    pc = mpl.collections.PatchCollection(edges, cmap=plt.cm.copper_r)
+    pc.set_array(edge_colors)
+    plt.colorbar(pc)
+    
+    ax = plt.gca()
+    ax.set_axis_off()
+    plt.show()
+    return G2,pos,ed_lbl
+    
+    
+def max_flow_assoc(Gnx, so_no, si_no):
+    #Perform max flow asocaition, not recommended (MCF is superior)
+    tracks = []
+    while nx.maximum_flow(Gnx,so_no, si_no)[0]>0:
+        Gnx = nx.algorithms.flow.edmonds_karp(Gnx, so_no, si_no)
+        new_path = nx.astar_path(Gnx,si_no,so_no, weight='flow')
+        tracks.append(new_path[1:-1])
+        Gnx.remove_nodes_from(new_path[1:-1])
+    return tracks

@@ -332,6 +332,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[Tr
                         llr_min = llr_new
     else:
         childs, child_sigs = get_order(G, nd, nd.lkf, cp.copy(sig), sensors)
+        L3+=len(childs) # If counting all edges, make 1
         for (ndc, ndc_sig) in zip(childs, child_sigs):# Compute costs for all neighbors
             if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
             if not ndc.visited:
@@ -343,7 +344,8 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[Tr
                 nid = list(sig_used.sindx).index(ndc.sid)
                 if nid<sig_used.N-1:
                     ndc_sig.add_sig(sig_used, nid+1, sensors)# create new signature
-                    llr_new, gc_new = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt); L3+=1
+                    llr_new, gc_new = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
+                    L3+=1 # InActivate
                     if llr_new < sig_used.llr and abs(sum(ndc_sig.gc))<abs(sum(sig_used.gc)) and ndc_sig.N>=minP:
                         if llr_new<llr_min:
                             ndc_sig.llr = llr_new
@@ -364,7 +366,8 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[Tr
 
         if not nd.visited:# check for min cost(if node not used)
             if sig.N>=minP:
-                l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);L3+=1
+                l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
+                L3+=1 # If ONLY Counting paths, make 1
 #                print(l_cost, get_l_thres(sig), g_cost, get_g_thres(sig), pid )
                 if l_cost < get_l_thres(sig, scale, al_pfa) and abs(sum(sig.gc))<get_g_thres(sig, scale, ag_pfa): # Based on CRLB
                     if opt[2]:# Backtrack to find best path using lkb along sig
@@ -533,6 +536,7 @@ def get_minpaths(G, sensors, mode, cfgp):
     return sel_sigs, glen, L3
 
 def get_rndsig(G, nd, sig_rnd, sel_sigs, pid, sensors):
+    # generate random signature if no asociation can be done.
     minP=len(sensors)-1
     out = False
     if nd:
@@ -552,3 +556,17 @@ def get_rndsig(G, nd, sig_rnd, sel_sigs, pid, sensors):
                 break
     return out
     
+def add_sosi_to_G(G, Gnx, tracks, sensors):
+    # Make signature from graph tracks
+    # For elementary Max flow approach, MCF is better so use that instead
+    sigs=[]
+    for t in tracks:
+        for n in t:
+            sid, pid = Gnx.node[n]['ids']
+            sobc = G[sid][pid]
+            if n==t[0]:
+                new_sig = ob.SignatureTracks(sobc.r, sobc.d, sid, sobc.g)# create new signature
+            else:
+                new_sig.add_update3(sobc.r, sobc.d, sobc.g, sid, sensors)
+        sigs.append(new_sig)
+    return sigs

@@ -19,24 +19,24 @@ import pickle
 import pandas as pd
 import seaborn as sns
 import importlib
+import copy as cp
 #from plotly.offline import init_notebook_mode, iplot
 #import plotly.graph_objs as go
 # import mpld3
 
 # mpld3.enable_notebook()
 # Add custom classes
-import objects as ob
-import proc_est as pr
-import association_methods as am
-import PCRLB as pcrlb
-import ml_est as mle
-import gradient_methods as gm
-import clustering_methods as cm
-import iter_prune as itpr
-import perf_eval as prfe
-import config as cfg # Sim parameters
-import bel_prop as bp
-import graph_primitives as grpr
+from GAutils import objects as ob
+from GAutils import proc_est as pr
+from GAutils import association_methods as am
+from GAutils import PCRLB as pcrlb
+from GAutils import ml_est as mle
+from GAutils import gradient_methods as gm
+from GAutils import perf_eval as prfe
+from GAutils import config as cfg # Sim parameters
+from GAutils import bel_prop as bp
+from GAutils import graph_primitives as grpr
+from GAutils import est_algo as ea
 
 #init_notebook_mode()
 np.set_printoptions(precision=2)# REduce decimal digits
@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*10
+snra = np.ones(Nf)*-10
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -102,23 +102,23 @@ for f in range(Nf):  # Loop over frames
         target_current, AbsPos = pr.ProcDyms(target, dt, tfa_list)
         for sensorID, sensor in enumerate(sensors):
             pure_beat = pr.get_beat(sensor, target, AbsPos[sensorID])
-            nois_beat = pr.add_cnoise(pure_beat, sensor.meas_std) # Add noise
-            beat[sensorID, :, :] += nois_beat
+            beat[sensorID, :, :] += pure_beat
             garda = pr.get_gard_true(sensor, target)
             gardat[sensorID].r=np.append(gardat[sensorID].r,garda.r)
             gardat[sensorID].d=np.append(gardat[sensorID].d,garda.d)
             gardat[sensorID].g=np.append(gardat[sensorID].g,garda.g)
         if not static_snapshot: targets_list.append(target_current)
         print('Target{}: x={},y={},vx={},vy={}'.format(tno+1, target_current.x, target_current.y,target_current.vx,target_current.vy))
-        
+    for sensorID, sensor in enumerate(sensors):
+        beat[sensorID, :, :] = pr.add_cnoise(beat[sensorID, :, :], sensor.meas_std) # Add noise
     t=time.time()
-    garda1 = pr.meth1(np.copy(beat), sensors, Nob)
+    garda1 = ea.meth2(np.copy(beat), sensors, Nob, [1,1])
     runtime[0,f] = time.time() - t
     t = time.time()
-    garda2 = pr.meth2(np.copy(beat), sensors, Nob)
+    garda2 = ea.meth2(np.copy(beat), sensors, Nob, cfg.osps)
     runtime[1,f] = time.time() - t
     t= time.time()
-    garda3 = pr.nomp(np.copy(beat), sensors)
+    garda3 = ea.nomp(np.copy(beat), sensors)
     runtime[2,f] = time.time() - t
     #        plotdata(targets[0].x,targets[0].y,1)
     garda_sel = garda3
@@ -132,23 +132,92 @@ for f in range(Nf):  # Loop over frames
 #    ordered_links, forward_links = am.band_prune(garda_sel, sensors)
 #    pr.plot_orderedlinks(ordered_links, garda_sel, sensors, rd_wt, 21, plt)
     #%% Graph Algo
+    cfgp = {'Nsel': [],# Genie info on # targets
+                'rd_wt':cfg.rd_wt,
+                'static_snapshot': cfg.static_snapshot,
+                'sep_th':cfg.sep_th,
+                'pmiss':cfg.pmiss,
+                'estalgo':cfg.estalgo, 
+                'osps':cfg.osps,
+                'n_Rc':cfg.n_Rc,
+                'n_pfa':cfg.n_pfa,
+                # Association
+                'rob':cfg.roba[0],
+                'mode': cfg.mode,
+                'hscale':cfg.hscale,
+                'incr':cfg.incr,
+                'hN': cfg.hN,
+                'ag_pfa':cfg.ag_pfa,
+                'al_pfa':cfg.al_pfa,
+                'Tlen':cfg.Tlen,
+                # Gauss Newton
+                'gn_steps':cfg.gn_steps,
+                'fu_alg':cfg.fu_alg
+                }
+    
     t=time.time()
-    G1 = grpr.make_graph(garda_sel, sensors, True)
-    [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
+    G1, rtime_make = grpr.make_graph(garda_sel, sensors, 0)
+    print('Graph gen took {}s'.format(rtime_make))
+    
+    G0 = cp.deepcopy(G1)
+    [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G0, sensors)
+    
     crb_min =np.array([1e-2, 1e-2])
-    min_gsigs = grpr.get_minpaths(G1, sensors, crb_min, 'DFS')
-    for sig in min_gsigs:
+    t=time.time()
+    min_gsigs1, glen, rtime_assoc = grpr.get_minpaths(G0, sensors, 'Relax', cfgp)
+    print('GA-DFS+Relax Association took {}s'.format(time.time()-t))
+        #%%
+    pr.plot_graph(G1, min_gsigs1, sensors, rd_wt, 77, plt, garda_sel) # From Relax
+    pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
+    if False: # Max flow Association (Not good)
+        Gnx, pos,ed_lbl = pr.plot_graph2(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
+        import networkx as nx
+        plt.figure(79)
+        nx.draw_networkx(Gnx, pos)
+        edge_labels = nx.get_edge_attributes(Gnx,'flow')
+        for e in edge_labels:
+            edge_labels[e]= int(edge_labels[e])
+        nx.draw_networkx_edge_labels(Gnx, pos, label_pos=0.2, edge_labels = edge_labels)  
+        plt.figure(80)
+        nx.draw_networkx(Gnx, pos)
+        edge_labels = nx.get_edge_attributes(Gnx,'capacity')
+        for e in edge_labels:
+            edge_labels[e]= int(edge_labels[e])
+        nx.draw_networkx_edge_labels(Gnx, pos, label_pos=0.7, edge_labels = edge_labels)  
+        so_no = sum([len(g) for g in G1])
+        t = time.time()
+        tracks = pr.max_flow_assoc(Gnx.copy(), so_no, so_no+1)
+        min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
+        print('Max-Flow Association took {}s'.format(time.time()-t))
+    #%% MCF Association
+    from GAutils import mcft as mcft
+    t=time.time()
+    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
+    print('Min cost-Flow Association took {}s'.format(time.time()-t))
+    #%%
+    
+    for sig in min_gsigs1:
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
         sig.state_end.mean = new_pos
     rtime_algo["Graph"]= time.time()-t
     plt.figure(76)
-    for gtr in min_gsigs:
+    for gtr in min_gsigs1:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
-    pr.plot_scene(plt, scene, sensors, 76, 'Graph pruning detects {} targets'.format(len(min_gsigs)))
-    #%%
-    pr.plot_graph(G1, min_gsigs, sensors, rd_wt, 77, plt)
-    break
+    pr.plot_scene(plt, scene, sensors, 76, 'Graph pruning detects {} targets'.format(len(min_gsigs1)))
+#    for sig in min_gsigs3:
+#        [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
+#        sig.state_end.mean = new_pos
+    plt.figure(75)
+    for gtr in min_gsigs3:
+        dob = gtr.state_end.mean
+        plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
+    pr.plot_scene(plt, scene, sensors, 75, 'Graph pruning detects {} targets'.format(len(min_gsigs3)))
+    
+    break # Stop here (Older code ahead)
+    
+    #########################
+    
     #%% Investigating linearity of signatures
     [signatures_raw, Nsig] = am.enumerate_raw_signatures(garda_sel, np.copy(ordered_links), np.copy(forward_links), sensors) # NO thresholding
     print ('Signatures (w/o thres):',len(signatures_raw))
@@ -261,34 +330,34 @@ for f in range(Nf):  # Loop over frames
 #%% [markdown]
 # ###    #%% Iteratively prune
 
-#%%
-    print('Iteratively pruning Phantoms:')
-    #    Pht_centroids = cm.cluster_pht1(pht_all, Nsel, ph_llr)# Using all at once
-    time.time()
-    Pht_centers = itpr.iterative_prune_pht(garda_sel, sensors, Nob, rd_wt, plt)# Iterative phantom based
-    rtime_algo["It_Phantoms"]= time.time()-t
-    plt.figure(4)
-    for pht_idx, pht in enumerate(pht_all):# Plot all phantoms & their likelihood
-        (xi, vxi)= (pht.x, pht.vx)
-        (yi, vyi) = (pht.y, pht.vy)
-        plt.quiver(xi, yi, vxi, vyi, color ='g', alpha = 0.1+0.9*((ph_llr[pht_idx]-min(ph_llr))/(max(ph_llr)-min(ph_llr))), headwidth = 4,headlength =4)
-    #    for ce in Pht_centroids: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='m', headwidth = 3.5) # Plot centroids
-    for ce in Pht_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3) # Plot iteratively selected loc. estimates
-    pr.plot_scene(plt, scene, sensors, 4, 'Likelihood at {} raw Phantoms using all (r,d) pairs'.format(N_pht))
-
-
-#%%
-    print('Iteratively pruning Signatures:')
-    #    sig_centroids = cm.cluster_sig1(signatures, Nsel, sensors, sig_llr) # Using all tracks at once
-    time.time()
-    sig_centers = itpr.iterative_prune_sig(garda_sel, sensors, Nob, rd_wt) # Iterative track based
-    rtime_algo["It_Signature"]= time.time()-t
-    plt.figure(5)
-    for sgi, obc in enumerate(sig_all): # Plot all signatures & their llr
-        plt.quiver(obc.x, obc.y, obc.vx, obc.vy, color ='b', alpha = 0.1+0.9*((sig_llr[sgi]-min(sig_llr))/(max(sig_llr)-min(sig_llr))), headwidth = 4,headlength =4)
-    #    for ce in sig_centroids: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='m', headwidth = 3.5) # Plot centroids
-    for ce in sig_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3) # Plot iteratively selected estimates
-    pr.plot_scene(plt, scene, sensors, 5, 'Likelihood at KF Track estimates ({} tracks, using (r,d))'.format(len(signatures)))
+    #%%
+    if False:
+        print('Iteratively pruning Phantoms:')
+        #    Pht_centroids = cm.cluster_pht1(pht_all, Nsel, ph_llr)# Using all at once
+        time.time()
+        Pht_centers = itpr.iterative_prune_pht(garda_sel, sensors, Nob, rd_wt, plt)# Iterative phantom based
+        rtime_algo["It_Phantoms"]= time.time()-t
+        plt.figure(4)
+        for pht_idx, pht in enumerate(pht_all):# Plot all phantoms & their likelihood
+            (xi, vxi)= (pht.x, pht.vx)
+            (yi, vyi) = (pht.y, pht.vy)
+            plt.quiver(xi, yi, vxi, vyi, color ='g', alpha = 0.1+0.9*((ph_llr[pht_idx]-min(ph_llr))/(max(ph_llr)-min(ph_llr))), headwidth = 4,headlength =4)
+        #    for ce in Pht_centroids: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='m', headwidth = 3.5) # Plot centroids
+        for ce in Pht_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3) # Plot iteratively selected loc. estimates
+        pr.plot_scene(plt, scene, sensors, 4, 'Likelihood at {} raw Phantoms using all (r,d) pairs'.format(N_pht))
+    
+    #
+        print('Iteratively pruning Signatures:')
+        #    sig_centroids = cm.cluster_sig1(signatures, Nsel, sensors, sig_llr) # Using all tracks at once
+        time.time()
+        sig_centers = itpr.iterative_prune_sig(garda_sel, sensors, Nob, rd_wt) # Iterative track based
+        rtime_algo["It_Signature"]= time.time()-t
+        plt.figure(5)
+        for sgi, obc in enumerate(sig_all): # Plot all signatures & their llr
+            plt.quiver(obc.x, obc.y, obc.vx, obc.vy, color ='b', alpha = 0.1+0.9*((sig_llr[sgi]-min(sig_llr))/(max(sig_llr)-min(sig_llr))), headwidth = 4,headlength =4)
+        #    for ce in sig_centroids: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='m', headwidth = 3.5) # Plot centroids
+        for ce in sig_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3) # Plot iteratively selected estimates
+        pr.plot_scene(plt, scene, sensors, 5, 'Likelihood at KF Track estimates ({} tracks, using (r,d))'.format(len(signatures)))
 
 #%%
 
@@ -360,18 +429,18 @@ for f in range(Nf):  # Loop over frames
     #        p2 = plt.plot(x_val, y_val, 'r-', alpha = 1-0.9*(erra_lin[i]-min(erra_lin))/(max(erra_lin)-min(erra_lin)))
     x_val = np.array([sensor.x for sensor in sensors])#2*np.arange(4)-3
     
-    for obj in scene:
-        r_true = np.sqrt(obj.x**2 + obj.y**2)
-        d_true = (obj.x * obj.vx + obj.y * obj.vy)/r_true
-        y_val = -x_val * obj.vx + r_true*d_true
-        p3 = plt.plot(x_val, y_val, 'k.:')
-    plt.grid(True)
-    time.time()
-    tp_centers = bp.iterative_tp_pruning(sig_rawp, sensors, 10, rd_wt)
-    rtime_algo["It_GeoPrune"]= time.time()-t
-    plt.figure(9)
-    for ce in tp_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3.5) # Plot centroids
-    pr.plot_scene(plt, scene, sensors, 9, 'Track purity result'.format(len(tp_centers)))
+#    for obj in scene:
+#        r_true = np.sqrt(obj.x**2 + obj.y**2)
+#        d_true = (obj.x * obj.vx + obj.y * obj.vy)/r_true
+#        y_val = -x_val * obj.vx + r_true*d_true
+#        p3 = plt.plot(x_val, y_val, 'k.:')
+#    plt.grid(True)
+#    time.time()
+#    tp_centers = bp.iterative_tp_pruning(sig_rawp, sensors, 10, rd_wt)
+#    rtime_algo["It_GeoPrune"]= time.time()-t
+#    plt.figure(9)
+#    for ce in tp_centers: plt.quiver(ce.x,ce.y,ce.vx,ce.vy, color='r', headwidth = 3.5) # Plot centroids
+#    pr.plot_scene(plt, scene, sensors, 9, 'Track purity result'.format(len(tp_centers)))
     
     #%%
     importlib.reload(bp)

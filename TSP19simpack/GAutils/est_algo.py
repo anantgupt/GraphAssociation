@@ -83,7 +83,7 @@ def nomp(y, sensors, Nob=[], osf=[16, 16], Nr=[1,3], pfa=1e-3, eps=0.01):
                 if (abs(residue_list[i][-2]-residue)/residue_list[i][0]<eps): # Relative
                     if len(gard.r)>1:
                         gard.pop(len(gard.r)-1)
-                        break
+                    break
 #                if (residue<tau): # ABSOLUTE 
 #                    break
         RD.decouple_rd(gard)

@@ -30,6 +30,7 @@ def run_it(datef, rng, itrx, itry):
 def main():
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)+'/fig_')
     cfg.Nf = 100 # was 50
+    cfg.N_cpu = 8
     
     rob_rng = [0,1,2]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 

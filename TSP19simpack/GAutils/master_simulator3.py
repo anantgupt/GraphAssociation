@@ -14,6 +14,7 @@ from functools import partial
 import os as os
 from tqdm import tqdm
 import matplotlib.animation as animation
+import time
 # Custom libs
 import GAutils.objects as ob
 import GAutils.config as cfg # Sim parameters
@@ -70,6 +71,8 @@ def main():
     print('Seeds used:',seeda)
     # TODO NOTE: Min threshold might not be satisfied for all sensors!!
     scenea = [pr.init_random_scene(max(Noba), sensorsa, cfg.sep_th, seeda[f]) for f in range(Nf)]
+
+    t=time.time()
     # Step 1: Init multiprocessing.Pool()
     if cfg.N_cpu <1:
         N_cpu = mp.cpu_count()
@@ -105,7 +108,8 @@ def main():
                 'al_pfa':cfg.al_pfa,
                 'Tlen':cfg.Tlen,
                 # Gauss Newton
-                'gn_steps':cfg.gn_steps
+                'gn_steps':cfg.gn_steps,
+                'fu_alg':cfg.fu_alg
                 }
 #        print('Running {} of {} '.format(inst+1, cfg.Ninst))
         if cfg.parallel:
@@ -146,6 +150,8 @@ def main():
             if not static_snapshot: scene = snapshot_result['next_scene'] # Update scene for next timestep
     # Step 3: Don't forget to close
     pool.close()  
+
+    print('Processing took {} s.'.format(time.time()-t))
     #%% Mask the arrays for averaging
     mask1 = np.ones((cfg.Ninst, max(Nsensa), max(Noba),2))
     for i in range(cfg.Ninst):
@@ -394,19 +400,23 @@ def main():
     handle.write('Nsens={}\n'.format(cfg.Nsensa))
     handle.write('Noba={}\n'.format(np.round(Noba,2)))
     handle.write('Sensor Width={}\n'.format(cfg.swidtha))
-    
+
+    handle.write('mode={}\n'.format(cfg.mode))
+    handle.write('Tlen={}\n'.format(cfg.Tlen))
     handle.write('Pmiss={}\n'.format(cfg.pmiss))
     handle.write('Est_Algo={}\n'.format(cfg.estalgo))
     handle.write('NOMP: OSPS={}, n_pfa={}, n_Rc={}\n'.format(cfg.osps,cfg.n_pfa,cfg.n_Rc))
     handle.write('GA-DFS: ag_pfa={}, al_pfa={}\n'.format(cfg.ag_pfa, cfg.al_pfa))
     handle.write('Relax: hN={}, hscale={}, incr ={}\n'.format(cfg.hN, cfg.hscale, cfg.incr))
-    handle.write('Misc: rd_wt={}, mode={}, gn_steps={}'.format(cfg.rd_wt, cfg.mode, cfg.gn_steps))
+    handle.write('Misc: rd_wt={}, fu_alg={}, gn_steps={}'.format(cfg.rd_wt, cfg.fu_alg, cfg.gn_steps))
 
     for fignum in range(1,12):
         plt.figure(fignum)
         plt.savefig("{}/{}".format(cfg.folder,fignum), Transparent=True)
         pickle.dump(plt.figure(fignum), open("{}/plot{}.pickle".format(cfg.folder,fignum), "wb"))
     plt.close('all')
+    print('Processing+Plotting took {} s.'.format(time.time()-t))
+
 
 def resizefig(plt, x, y):
     fig = plt.gcf()

@@ -31,6 +31,7 @@ rng_used = Nsensa
 xlbl = 'Num sensors' #'SNR (dB)' # 'Num objects', 'Num sensors'
 # Scalars
 sep_th = 1 # Separation threshold
+pmiss=0 #Prob of missing target at sensors
 rd_wt = [1,1] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 all_pht = True # All possible pht or only consecutive pairs
 static_snapshot = 1
@@ -41,7 +42,7 @@ osps = [3,3] # 2 is good enuf
 n_Rc = [1,2] # Test with 2,3
 n_pfa = 1e-2 # Optimal is 1e-2 or 2e-2
 # Association
-mode = 'Relax' # Choose:'Brute','DFS','Relax','Brute_iter'
+mode = 'Relax' # Choose:'Brute','DFS','Relax','Brute_iter','mcf'
 #crb_min =np.array([1e-2, 1e-2]) # Empirical variance of Range, Doppler (For LLR)
 hscale= np.array([8,64]) # Growth in thresold (squared for fitting threshold)
 incr = 2 # Increment in association iterations
@@ -50,5 +51,6 @@ ag_pfa = 1e-2 # Sets beginning value of geometric fitting thres
 al_pfa = 1e-2 # Sets beginning value of likelihood thres
 Tlen = 3 # At least Tlen nodes in track
 # Gauss Newton
+fu_alg = 'ls' # Least-Square: 'ls', Huber: 'huber', 'l1','l2': Same as ls but usins cvx
 gn_steps = 5
 folder = 'rawfigs2'
