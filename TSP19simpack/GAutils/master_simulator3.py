@@ -372,24 +372,27 @@ def main():
     except FileExistsError:
         print("Directory " , cfg.folder ,  " already exists")
     # Setup video files
-    FFMpegWriter = animation.writers['ffmpeg']
-    metadata = dict(title='Movie Test', artist='Anant',comment='Target motion')
-    writer = FFMpegWriter(fps=1, metadata=metadata)
-    fig = plt.figure(15)
-    with writer.saving(fig, '{}/Scenes.mp4'.format(cfg.folder), dpi=100):
-        for i, scene in enumerate(scenea):
-            for j in range(cfg.Ninst):
-                sx=np.linspace(-cfg.swidtha[j], cfg.swidtha[j],cfg.Nsensa[j])
-                sensorsp = [ob.Sensor(x,0) for x in sx]
-                phlist = grca[j][i]
-                plt.clf()
-                for gr in phlist: 
-                    if abs(gr.vx)+abs(gr.vy)>0:
-                        plt.quiver(gr.x, gr.y,gr.vx,gr.vy, color='r', headwidth = 4, headlength=6, headaxislength=5)
-                    else:
-                        plt.plot(gr.x, gr.y, 'ro')
-                pr.plot_scene(plt, scene[:Noba[j]], sensorsp, 15, 'Scene {} with {} detections, SNR = {} dB'.format(i, np.round(np.sum(present[j,:,:],axis=1)/Nf/Noba[j],2), round(snra[j])))
-                writer.grab_frame()
+    try:
+        FFMpegWriter = animation.writers['ffmpeg']
+        metadata = dict(title='Movie Test', artist='Anant',comment='Target motion')
+        writer = FFMpegWriter(fps=1, metadata=metadata)
+        fig = plt.figure(15)
+        with writer.saving(fig, '{}/Scenes.mp4'.format(cfg.folder), dpi=100):
+            for i, scene in enumerate(scenea):
+                for j in range(cfg.Ninst):
+                    sx=np.linspace(-cfg.swidtha[j], cfg.swidtha[j],cfg.Nsensa[j])
+                    sensorsp = [ob.Sensor(x,0) for x in sx]
+                    phlist = grca[j][i]
+                    plt.clf()
+                    for gr in phlist: 
+                        if abs(gr.vx)+abs(gr.vy)>0:
+                            plt.quiver(gr.x, gr.y,gr.vx,gr.vy, color='r', headwidth = 4, headlength=6, headaxislength=5)
+                        else:
+                            plt.plot(gr.x, gr.y, 'ro')
+                    pr.plot_scene(plt, scene[:Noba[j]], sensorsp, 15, 'Scene {} with {} detections, SNR = {} dB'.format(i, np.round(np.sum(present[j,:,:],axis=1)/Nf/Noba[j],2), round(snra[j])))
+                    writer.grab_frame()
+    except Exception as e: print(e)
+    
     # Save variables 
     # np.savetxt('{}/mat.out'.format(cfg.folder), (Noba, snra), delimiter=",")
     handle = open('{}/params.txt'.format(cfg.folder),'w') 
