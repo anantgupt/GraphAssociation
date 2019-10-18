@@ -130,16 +130,17 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             self.Zdict[Ninp]=Zt
             self.Widict[Ninp] = Wit
     
-    def get_newfit_error(cls, sensors, rnew, dnew, sidnew):
+    def get_newfit_error(cls, sensors, rnew, dnew, gnew, sidnew):
         # Reports geometry fitting error for given R,D pair
-        rn = np.vstack((cls.r, rnew))
-        dn = np.vstack((cls.d, dnew))
+        rn = np.hstack((cls.r, rnew))
+        dn = np.hstack((cls.d, dnew))
+        gn = np.hstack((cls.g, gnew))
         Me = rn*dn
         Me2 = rn*rn
         Ns = len(rn)
-        sindx_new = cls.sindx[si]+sidnew
+        sindx_new = np.hstack((cls.sindx,sidnew))
         L = np.array([sensors[si].x for si in sindx_new])
-        CRB = np.array([sensors[si].getCRB()/(abs(cls.g[si])**2) for si in sindx_new])
+        CRB = np.array([sensors[si].getCRB()/(abs(gn[i])**2) for i, si in enumerate(sindx_new)])
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]

@@ -82,11 +82,12 @@ def similar_paths(sob_i, sob_j, sob_k, sensors):# Check if 3 nodes should be on 
             return True
     return False
     
-def enum_graph_sigs(G, sensors):
+def enum_graph_sigs(G, sensors, lite=False):
     # If no signatures observed then they should be intialized inside loop, 
     # here we assume atleast 1 track goes across all sensors
     s=len(sensors)-1
     Final_tracks = []
+    Fin_track_len = 0
     while s>0: # s is sensor index of source
         for p, sobc in enumerate(G[s]):
             Nb = len(sobc.lkb)
@@ -94,12 +95,43 @@ def enum_graph_sigs(G, sensors):
             if (Nf == 0) & (Nb>0): # Stop track and store in final tracks
                 sg = ob.SignatureTracks(sobc.r, sobc.d, s, sobc.g)# create new signature
                 signatures = get_tracks(G, sobc, sg, sensors)
-                Final_tracks.extend(signatures)# At sensor 0, Nb=0 for all, so all tracks will be saved
+                if lite:
+                    Fin_track_len+=1
+                else:
+                    Final_tracks.extend(signatures)# At sensor 0, Nb=0 for all, so all tracks will be saved
+
         s=s-1 # Move to previous sensor
 #    for tracks in signatures:   
 #        for track in tracks:
 #            Final_tracks.append(track) 
-    return Final_tracks, len(Final_tracks)
+    return Final_tracks, Fin_track_len
+
+def get_BruteComplexity(G):
+    Fin_track_len = 0
+    Fin_edge_len = 0
+    NodeComplexity = {}
+    def get_NodeComplexity(sid, oid):
+        if (sid,oid) in NodeComplexity:
+            return NodeComplexity[(sid,oid)]
+        else:
+            N = 0
+            for ndf in G[sid][oid].lkf:
+                N+= 1 + get_NodeComplexity(ndf.sid, ndf.oid)
+            NodeComplexity[(sid,oid)] = N
+            return N
+
+    s = len(G)-1
+    while s>0: # s is sensor index of source
+        for p, sobc in enumerate(G[s]):
+            Fin_edge_len += get_NodeComplexity(s, p)
+        s=s-1 # Move to previous sensor
+    
+    
+        
+#    for tracks in signatures:   
+#        for track in tracks:
+#            Final_tracks.append(track) 
+    return Fin_edge_len, Fin_track_len
 
 def get_tracks(G, nd, sig, sensors): # recursively extract tracks
     if nd.lkb:
@@ -176,20 +208,18 @@ def get_l_thres(sig, scale, al_pfa):
     else:
         return scale[0]*chi2.isf(al_pfa, 2*sig.N, loc=0, scale=1)# TODO: Wald statistic is normalized by CRB
 
-def get_order(G, new_nd, target_nds, path): # Slim version, Oct 2019
+def get_order(G, new_nd, target_nds, path, sensors): # Slim version, Oct 2019
     if target_nds:
         g_cost=[]
         for tnd in target_nds:
-            if tnd==None:
-                continue
             if path.N<2: # Cannot calculate straigtness with 2 nodes
                 g_cost.append(np.inf)
-            else:   
+            else:     
                 try:
-                    new_cost = path.get_newfit_error(tnd.r, tnd.d, tnd.sid)
+                    new_cost = path.get_newfit_error(sensors, tnd.r, tnd.d, tnd.g, tnd.sid)
                 except ValueError as err:
                     print(err.args)
-                    continue # Can print error happened                    
+                    continue # Can print error happened     
                 g_cost.append(new_cost) # use trace maybe
         srtind = np.argsort(g_cost)
         childs = [target_nds[ind] for ind in srtind]
@@ -222,13 +252,14 @@ def get_order2(G, new_nd, target_nds, path, sensors): # Heavy
     return childs, child_sigs
 
 def Brute(G, nd, sig, sel_sigs, pid, sensors, cfgp, scale, minP): # recursive implementation
-    childs = get_order(G, nd, nd.lkf, sig)
+    childs = get_order(G, nd, nd.lkf, sig, sensors)
     # childs, child_sigs = get_order(G, nd, nd.lkf, cp.copy(sig), sensors)
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     L3 = 0
     for ndc in childs:# Compute costs for all neighbors
         if not ndc.visited:
-            ndc_sig = cp.copy(sig).add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
+            ndc_sig = cp.copy(sig)
+            ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
             pnext = cp.copy(pid)
             pnext.append(ndc.oid)
             L3+=Brute(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, scale, minP)
@@ -340,14 +371,15 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[Tr
     L3 = 0 # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     if not nd.visited:# Check if tracks could be joined
-        childs = get_order(G, nd, nd.lkf, sig)
+        childs = get_order(G, nd, nd.lkf, sig, sensors)
         L3+=len(childs) # If counting all edges, make 1
         for ndc in childs:# Compute costs for all neighbors
             if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
             if not ndc.visited:
                 pnext = cp.copy(pid)
                 pnext.append(ndc.oid)
-                ndc_sig = cp.copy(sig).add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
+                ndc_sig = cp.copy(sig)
+                ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, scale, opt)
 
         if cand_sig: # Check if node got visited by better track

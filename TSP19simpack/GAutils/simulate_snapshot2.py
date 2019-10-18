@@ -83,7 +83,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
         G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
         runtime[1] = time.time() - t
         runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
-        _, runtime[5] = grpr.enum_graph_sigs(G1, sensors)
+        runtime[5],_ = grpr.get_BruteComplexity(G1)
         if cfg.scene_plots:
             [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
             pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
