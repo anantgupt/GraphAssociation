@@ -224,8 +224,9 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         return new_state, sum(gc)
     
     def get_rd_fit_error(cls, sensors, mode='ls', all_flag=False):
-        Me = cls.r * cls.d
-        Me2 = cls.r * cls.r
+        
+        Me = np.array(cls.r) * np.array(cls.d)
+        Me2 = np.array(cls.r) * np.array(cls.r)
         Ns = cls.N
         L = np.array([sensors[si].x for si in cls.sindx])
         CRB = np.array([sensors[si].getCRB()/(abs(gi)**2) for (si, gi) in zip(cls.sindx, cls.g)])

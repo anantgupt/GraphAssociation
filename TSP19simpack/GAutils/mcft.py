@@ -245,17 +245,18 @@ def get_mcfsigs(garda, sensors):
 				pid = newt[1]
 				new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 				newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
-			sigs.append(new_sig)
-	else:
+			if new_sig.N>1:
+				sigs.append(new_sig)
+	if not sigs:
 		for sid, sensor in enumerate(sensors):
 			if sid==0:
 				sig_rnd = ob.SignatureTracks(math.sqrt(sensor.x**2+0.01), 0, sid, 1)
 			else:
 				sig_rnd.add_update3(math.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
 		sigs.append(sig_rnd)
-		print('No Feasible Targets Found (choosing (0,0.1)). ')
+		print('.',end='')
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	glen = []
-	L3 = int(V*E*math.log(V)) # Haque S.O.T Slide 20
+	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	return sigs, glen, L3

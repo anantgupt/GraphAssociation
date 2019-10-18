@@ -637,9 +637,9 @@ def get_minpaths(G, sensors, mode, cfgp):
                 else:
                     sig_rnd.add_update3(np.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
             sel_sigs.append(sig_rnd)
-            print('No Feasible Targets Found (choosing (0,0.1)). ')
+            print('.',end='')#print('No Feasible Targets Found (choosing (0,0.1)). ')
         else:
-            print('No Targets Found (choosing random feasible path). ')
+            print('o',end='')#print('No Targets Found (choosing random feasible path). ')
             
     return sel_sigs, glen, L3
 
