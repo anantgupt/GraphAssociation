@@ -7,7 +7,7 @@ Analyzed effect of FFT, NOMP (NOMP better, see May19 slides or workflowy)
 import GAutils.master_simulator3 as ms3
 import GAutils.config as cfg
 import numpy as np
-from datetime import date
+from datetime import date, datetime
 
 def set_it(itrx, xval, idxa, val):
     it_name=['roba','snra','Nsensa','Noba','swidtha']
@@ -28,9 +28,13 @@ def run_it(datef, rng, itrx, itry):
    
         
 def main():
-    datef =('results'+str(date.today().month)+'_'+str(date.today().day)+'/fig_')
-    cfg.Nf = 100 # was 50
-    cfg.N_cpu = 8
+    datef =('results'+str(date.today().month)+'_'+str(date.today().day)
+        +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
+    cfg.Nf = 50 # was 50
+    cfg.N_cpu = -1
+    
+    cfg.fu_alg = 'ls'
+    cfg.mode = 'Relax'
     
     rob_rng = [0,1,2]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
@@ -62,7 +66,7 @@ def main():
     rob_rng2 = [0, 1, 2]
     # # Rob vs Nob 
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
-    run_it(datef, rob_rng2,'Nob','Rob')
+    run_it(datef, rob_rng2,'Nob','rob')
     #################
     Nsens_rng2 = [4,6]
     # Nsens vs Nob
@@ -90,7 +94,7 @@ def main():
     cfg.estalgo = 1
     # DFT vS Nob
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
-    run_it(datef, rob_rng2,'Nob','Rob')
+    run_it(datef, rob_rng2,'Nob','rob')
     ################
     # DFT vS Nsens
     set_it(2, Nsens_rng, [1,3,4],[snr_std, Nob_std, swidth_std])
