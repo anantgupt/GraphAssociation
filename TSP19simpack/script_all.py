@@ -34,7 +34,7 @@ def main():
     cfg.N_cpu = -1
     
     cfg.fu_alg = 'ls'
-    cfg.mode = 'mcf'
+    cfg.mode = 'Relax'
     
     rob_rng = [0,1,2]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
