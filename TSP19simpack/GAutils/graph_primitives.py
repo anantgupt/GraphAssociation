@@ -211,7 +211,7 @@ def get_l_thres(sig, scale, al_pfa):
 
 def get_order(G, new_nd, target_nds, path, sensors): # Slim version, Oct 2019
     if target_nds:
-        target_nds_valid = filter(lambda x: ~x.visited, target_nds)
+        target_nds_valid = list(filter(lambda x: ~x.visited, target_nds))
         if path.N<2: # Cannot calculate straigtness with 2 nodes
             return target_nds_valid
         else:
@@ -348,11 +348,12 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     scale = cfgp['hscale']
     hN = cfgp['hN']
     L3 = 0
-    minP = len(sensors)
+    Ns = minP = len(sensors)
     hq = []
     for h in range(hN):
 #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
-        for i, sobs in enumerate(G):
+        for i in range(Ns-minP+1):
+            sobs = G[i]
             for pid, sobc in enumerate(sobs):
     #            print(G[ind].val)
                 sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
@@ -383,7 +384,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, scale=[1e2,1e4], opt
                 pnext.append(ndc.oid)
                 ndc_sig = cp.copy(sig)
                 ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
-                L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, scale, opt)
+                L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, scale, opt)
 
         # if cand_sig: # Check if node got visited by better track
         #     if nd.visited:
@@ -407,7 +408,10 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, scale=[1e2,1e4], opt
                         sel_sigs.append(sig)
                         update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
                     else: # NOTE this can be moved to outer If cond (minP) also!!
-                        hq.heappush([-sig.N, l_cost, abs(sum(sig.gc)), sig])
+                        try:
+                            heapq.heappush(hq, [-sig.N, l_cost, abs(sum(sig.gc)), sig])
+                        except Exception as e:
+                            print(e, end=' ')
                         # sig in this list should be updated whenever in nd is updated
     # if cand_sig:# Replace with the one which minimizes LLR
     #     # Add new track at nd

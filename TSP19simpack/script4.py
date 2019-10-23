@@ -28,9 +28,9 @@ def run_it(datef, rng, itrx, itry):
    
         
 def main():
-    datef =('results'+str(date.today().month)+'_'+str(date.today().day)
+    datef =('results/'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
-    cfg.Nf = 50 # was 50
+    cfg.Nf = 10 # was 50
     cfg.N_cpu = -1
     
     cfg.fu_alg = 'ls'
