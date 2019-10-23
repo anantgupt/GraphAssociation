@@ -13,6 +13,7 @@ from GAutils import proc_est as pr
 from GAutils import ml_est as mle
 # import config as cfg
 from scipy.stats import chi2
+import heapq
 
 def make_graph(garda, sensors, lskp=False, l2p=0):
     Ns=len(sensors)
@@ -210,11 +211,12 @@ def get_l_thres(sig, scale, al_pfa):
 
 def get_order(G, new_nd, target_nds, path, sensors): # Slim version, Oct 2019
     if target_nds:
-        g_cost=[]
-        for tnd in target_nds:
-            if path.N<2: # Cannot calculate straigtness with 2 nodes
-                g_cost.append(np.inf)
-            else:     
+        target_nds_valid = filter(lambda x: ~x.visited, target_nds)
+        if path.N<2: # Cannot calculate straigtness with 2 nodes
+            return target_nds_valid
+        else:
+            g_cost=[]
+            for tnd in target_nds_valid:
                 try:
                     new_cost = path.get_newfit_error(sensors, tnd.r, tnd.d, tnd.g, tnd.sid)
                 except ValueError as err:
@@ -347,26 +349,27 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     hN = cfgp['hN']
     L3 = 0
     minP = len(sensors)
+    hq = []
     for h in range(hN):
 #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
         for i, sobs in enumerate(G):
             for pid, sobc in enumerate(sobs):
     #            print(G[ind].val)
                 sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
-                L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, scale, opt=[False,False,False] )
+                L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, scale, opt=[False,False,False] )
         G, stopping_cr = remove_scc(G, sensors)# Add skip connection
         glen.append(sum(len(g) for g in G))
         if stopping_cr:# Until path of length minP left in Graph
             break
         scale = scale*cfgp['incr']
-        if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']:
+        if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']: # Might wanna use the heap here for speed.
             minP-=1
     return glen, L3
 
-def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # code cleanup
+def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, scale=[1e2,1e4], opt=[True,False,False]): # code cleanup
     if sig==None:
         return 0
-    cand_sig =[]
+    # cand_sig =[]
     llr_min = np.inf
     L3 = 0 # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
@@ -382,39 +385,41 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[Tr
                 ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, scale, opt)
 
-        if cand_sig: # Check if node got visited by better track
-            if nd.visited:
-                if llr_min < sel_sigs[nd.used].llr:
-                    # Erase existing track without nd
-                    sig_temp = sel_sigs[nd.used]
-                    sel_sigs[nd.used] = None
-                    update_G(G, sig_temp.sindx,sig_temp.pid, False, None)# Mark new ones as visited
-                else:
-                    cand_sig = []
+        # if cand_sig: # Check if node got visited by better track
+        #     if nd.visited:
+        #         if llr_min < sel_sigs[nd.used].llr:
+        #             # Erase existing track without nd
+        #             sig_temp = sel_sigs[nd.used]
+        #             sel_sigs[nd.used] = None
+        #             update_G(G, sig_temp.sindx,sig_temp.pid, False, None)# Mark new ones as visited
+        #         else:
+        #             cand_sig = []
 
         if not nd.visited:# check for min cost(if node not used)
             if sig.N>=minP:
                 l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
-                L3+=1 # If ONLY Counting paths, make 1
+                L3+=0 # If ONLY Counting paths, make 1, ELSE 0
 #                print(l_cost, get_l_thres(sig), g_cost, get_g_thres(sig), pid )
-                if l_cost < get_l_thres(sig, scale, al_pfa) and abs(sum(sig.gc))<get_g_thres(sig, scale, ag_pfa): # Based on CRLB
-                    if path_check(G, sig, pid):
+                if path_check(G, sig, pid): # Check that no member of chain is already visited
+                    if l_cost < get_l_thres(sig, scale, al_pfa) and abs(sum(sig.gc))<get_g_thres(sig, scale, ag_pfa): # Based on CRLB
                         sig.llr = l_cost
                         sig.pid = pid
                         sel_sigs.append(sig)
                         update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
+                    else: # NOTE this can be moved to outer If cond (minP) also!!
+                        hq.heappush([-sig.N, l_cost, abs(sum(sig.gc)), sig])
                         # sig in this list should be updated whenever in nd is updated
-    if cand_sig:# Replace with the one which minimizes LLR
-        # Add new track at nd
-        sig_used = sel_sigs[repl_sigid]
-        for iold in range(repl_point):# MArk old as free
-            si=sig_used.sindx[iold]
-            pi=sig_used.pid[iold]
-            G[si][pi].visited = False
-            G[si][pi].used = None
-        update_G(G, cand_sig.sindx,cand_sig.pid, True, repl_sigid)# Mark new ones as visited
-        sel_sigs[repl_sigid]=cand_sig
-        print('State changed to x={}'.format(cand_sig.pid))
+    # if cand_sig:# Replace with the one which minimizes LLR
+    #     # Add new track at nd
+    #     sig_used = sel_sigs[repl_sigid]
+    #     for iold in range(repl_point):# MArk old as free
+    #         si=sig_used.sindx[iold]
+    #         pi=sig_used.pid[iold]
+    #         G[si][pi].visited = False
+    #         G[si][pi].used = None
+    #     update_G(G, cand_sig.sindx,cand_sig.pid, True, repl_sigid)# Mark new ones as visited
+    #     sel_sigs[repl_sigid]=cand_sig
+    #     print('State changed to x={}'.format(cand_sig.pid))
     return L3
 
 def DFS2(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # recursive implementation
