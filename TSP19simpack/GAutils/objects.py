@@ -16,7 +16,7 @@ from GAutils import config as cfg
 class FMCWprms:
     c = 3e8  # Speed of light
 
-    def __init__(self, B=150e6, Ts=1 / 128e4, fc=6e10, Ni=64, Nch=64):
+    def __init__(self, B=0.5e9, Ts=1 / 82e4, fc=6e10, Ni=64, Nch=64): # was 150M, 1.28M (1m, 0.7816m/s); (0.5G,0.8M)->(0.3m,0.5m/s)
         self.fc = fc
         self.B = B
         self.Ts = Ts
@@ -68,6 +68,11 @@ class Sensor:
         FIMd = self.mcs.FIMd
         sigma= self.meas_std**2
         return (sigma/2)*np.array([scale[0]/FIMr, scale[1]/FIMd])
+
+    def getnominalCRB(self, nom_snr=-20, scale=[1,1]):
+        FIMr= self.mcs.FIMr
+        FIMd = self.mcs.FIMd
+        return 10**(nom_snr/10) * np.array([scale[0]/FIMr, scale[1]/FIMd])
    
 class gardEst:
     def __init__(self):

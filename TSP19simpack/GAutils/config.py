@@ -47,8 +47,8 @@ mode = 'Relax' # Choose:'Brute','DFS','Relax','Brute_iter','mcf'
 hscale= np.array([8,64]) # Growth in thresold (squared for fitting threshold)
 incr = 2 # Increment in association iterations
 hN = 20 # Relaxation iterations
-ag_pfa = 1e-2 # Sets beginning value of geometric fitting thres 
-al_pfa = 1e-2 # Sets beginning value of likelihood thres
+ag_pfa = 5e-2 # Sets beginning value of geometric fitting thres 
+al_pfa = 5e-2 # Sets beginning value of likelihood thres
 Tlen = 3 # At least Tlen nodes in track
 # Gauss Newton
 fu_alg = 'ls' # Least-Square: 'ls', Huber: 'huber', 'l1','l2': Same as ls but usins cvx

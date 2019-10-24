@@ -110,10 +110,10 @@ class estRD():
     #    rf, df = c / 2 / mcs.B, c / 2 / mcs.tf / mcs.fc
     #    d2r = mcs.fc / mcs.ss
         (N0, N1) = cls.N0, cls.N1
-        fft1 = np.fft.fftshift(np.fft.fft2(cls.y, [N0*osf[0], N1*osf[1]]))
+        fft1 = np.fft.fftshift(np.fft.fft2(cls.y, [N0*osf[0], N1*osf[1]]), axes=0)
         ind = unravel_index(np.abs(fft1).argmax(), fft1.shape)
         g1 = fft1[ind]/cls.rN
-        r1 = cls.rf * (ind[1] - N1 * osf[1] / 2) / osf[1]
+        r1 = cls.rf * (ind[1]) / osf[1] # cls.rf * (ind[1] - N1 * osf[1] / 2) / osf[1]
         d1 = cls.df * (ind[0] - N0 * osf[0] / 2) / osf[0]
         omg2 = 2*np.pi*r1/ cls.rf / (N1) # Fast time omega
         omg1 = 2*np.pi*d1/ cls.df / (N0) # Slow time omega    

@@ -32,7 +32,7 @@ def est_pathllr(sig, sensors, minP=[], rd_wt = cfg.rd_wt, modf=False): # Use ran
     
     if not minP: minP=sig.N
     
-    if sig.N>minP: # Compute geometric cost ignoring weak node(Didn't work)
+    if False: # sig.N>minP: # Compute geometric cost ignoring weak node(Didn't work)
         ind_weak = np.argmax(abs(sig.gc))
         sid_weak = sig.sindx[ind_weak] # Sensor obs with mighest fitting error
         strong_id = list(range(sig.N))
@@ -51,9 +51,10 @@ def est_pathllr(sig, sensors, minP=[], rd_wt = cfg.rd_wt, modf=False): # Use ran
         g_cost = sum(sig.gc)
     template = ob.PointTarget(tpa[0],tpa[1],tpa[2],tpa[3])
     for (rp, dp, gp, sid) in zip(sig.r, sig.d, sig.g, sig.sindx):
-        if sid !=sid_weak:
+        if sid !=sid_weak: # Always true
             sensor = sensors[sid]
-            crb = sensor.getCRB()/(abs(gp)**2)
+            # crb = sensor.getCRB()/min(abs(gp)**2,1) # So that CRB isn't too low (Can fix to nominal value also)
+            crb = sensor.getnominalCRB() # Get CRB for nominal SNR
             gard = pr.get_gard_true(sensor, template) #gard template
             dR = rp- gard.r # Array of est range delta
             dD = dp - gard.d

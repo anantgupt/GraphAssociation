@@ -343,7 +343,7 @@ def remove_scc2(G, sensors):# Inefficient implementation
     G = make_graph(garda, sensors, True) # With skip connextion
     return G, False
 
-def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
+def Relax2(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     G = cp.copy(Gfix)
     scale = cfgp['hscale']
     hN = cfgp['hN']
@@ -367,7 +367,37 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
             minP-=1
     return glen, L3
 
-def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, scale=[1e2,1e4], opt=[True,False,False]): # code cleanup
+def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
+    G = cp.copy(Gfix)
+    scale = cfgp['hscale']
+    hN = cfgp['hN']
+    L3 = 0
+    Ns = minP = len(sensors)
+    hq = []
+        
+    for h in range(hN):
+#        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
+        lg_thres = np.array([[scale[0]*chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
+                    [scale[1]*chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
+        lg_thres[0,0]=-np.inf
+        for i in range(2):
+            lg_thres[1][i]=-np.inf
+        for i in range(Ns-minP+1):
+            sobs = G[i]
+            for pid, sobc in enumerate(sobs):
+    #            print(G[ind].val)
+                sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
+                L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
+        G, stopping_cr = remove_scc(G, sensors)# Add skip connection
+        glen.append(sum(len(g) for g in G))
+        if stopping_cr:# Until path of length minP left in Graph
+            break
+        scale = scale*cfgp['incr']
+        if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']: # Might wanna use the heap here for speed.
+            minP-=1
+    return glen, L3
+
+def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,False,False]): # code cleanup
     if sig==None:
         return 0
     # cand_sig =[]
@@ -384,46 +414,32 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, scale=[1e2,1e4], opt
                 pnext.append(ndc.oid)
                 ndc_sig = cp.copy(sig)
                 ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
-                L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, scale, opt)
+                if ndc_sig.N>2:
+                    l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
+                    if l_cost>lg_thres[0][sig.N-1]: # Avoid going deeper as cost only increases
+                        continue
+                L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, lg_thres, opt)
 
-        # if cand_sig: # Check if node got visited by better track
-        #     if nd.visited:
-        #         if llr_min < sel_sigs[nd.used].llr:
-        #             # Erase existing track without nd
-        #             sig_temp = sel_sigs[nd.used]
-        #             sel_sigs[nd.used] = None
-        #             update_G(G, sig_temp.sindx,sig_temp.pid, False, None)# Mark new ones as visited
-        #         else:
-        #             cand_sig = []
 
         if not nd.visited:# check for min cost(if node not used)
-            if sig.N>=minP:
-                l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
-                L3+=0 # If ONLY Counting paths, make 1, ELSE 0
-#                print(l_cost, get_l_thres(sig), g_cost, get_g_thres(sig), pid )
-                if path_check(G, sig, pid): # Check that no member of chain is already visited
-                    if l_cost < get_l_thres(sig, scale, al_pfa) and abs(sum(sig.gc))<get_g_thres(sig, scale, ag_pfa): # Based on CRLB
+            if path_check(G, sig, pid): # Check that no member of chain is already visited
+                if sig.N>=minP-1:
+                    l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
+                    L3+=0 # If ONLY Counting paths, make 1, ELSE 0
+                    print(l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid )
+                
+                    if sig.N>=minP and l_cost < lg_thres[0][sig.N-1] and abs(sum(sig.gc))<lg_thres[1][sig.N-1]: # Based on CRLB
                         sig.llr = l_cost
                         sig.pid = pid
                         sel_sigs.append(sig)
                         update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
-                    else: # NOTE this can be moved to outer If cond (minP) also!!
+                    elif sig.N>=minP-1: # NOTE this can be moved to outer If cond (minP) also!!
                         try:
-                            heapq.heappush(hq, [-sig.N, l_cost, abs(sum(sig.gc)), sig])
+                            Ns = len(sensors)
+                            heapq.heappush(hq, [2*(Ns-sig.N)+l_cost, abs(sum(sig.gc)), np.random.randn(), sig])
                         except Exception as e:
                             print(e, end=' ')
-                        # sig in this list should be updated whenever in nd is updated
-    # if cand_sig:# Replace with the one which minimizes LLR
-    #     # Add new track at nd
-    #     sig_used = sel_sigs[repl_sigid]
-    #     for iold in range(repl_point):# MArk old as free
-    #         si=sig_used.sindx[iold]
-    #         pi=sig_used.pid[iold]
-    #         G[si][pi].visited = False
-    #         G[si][pi].used = None
-    #     update_G(G, cand_sig.sindx,cand_sig.pid, True, repl_sigid)# Mark new ones as visited
-    #     sel_sigs[repl_sigid]=cand_sig
-    #     print('State changed to x={}'.format(cand_sig.pid))
+
     return L3
 
 def DFS2(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, scale=[1e2,1e4], opt=[True,False,False]): # recursive implementation

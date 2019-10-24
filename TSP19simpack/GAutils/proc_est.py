@@ -34,7 +34,7 @@ def check_minsep(scene, sensors, garda, newtarget, sep_th, dop=True):
         R_res = sensor.mcs.c/(2*sensor.mcs.B)
         D_res = sensor.mcs.c/(2*sensor.mcs.fc * sensor.mcs.Ni * sensor.mcs.Nch * sensor.mcs.Ts)
         if dop: beta = np.linalg.inv(np.array([[R_res**2*3/2, -D_res**2],[-D_res**2, D_res**2*3/2]]))# Obtained [[1,-0.6],[-0.6,0.6]] from fitting
-        else: beta = np.linalg.inv(np.array([[R_res**2, -D_res**2],[-D_res**2, D_res**2]]))# Obtained [[1,-0.6],[-0.6,0.6]] from fitting
+        else: beta = np.linalg.inv(np.array([[R_res**2, -min(D_res,R_res)**2],[-min(D_res, R_res)**2, D_res**2]]))# Obtained [[1,-0.6],[-0.6,0.6]] from fitting
         newgard = get_gard_true(sensor, newtarget)
         sep = np.vstack([(newgard.r - gard.r),(newgard.d - gard.d)])
         # if any( ( abs(newgard.r - gard.r)/R_res # Old ellipse boundary
