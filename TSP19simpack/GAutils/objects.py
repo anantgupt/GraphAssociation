@@ -72,7 +72,7 @@ class Sensor:
     def getnominalCRB(self, nom_snr=-20, scale=[1,1]):
         FIMr= self.mcs.FIMr
         FIMd = self.mcs.FIMd
-        return 10**(nom_snr/10) * np.array([scale[0]/FIMr, scale[1]/FIMd])
+        return (10**(-nom_snr/10)/2) * np.array([scale[0]/FIMr, scale[1]/FIMd])
    
 class gardEst:
     def __init__(self):
@@ -145,7 +145,8 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Ns = len(rn)
         sindx_new = np.hstack((cls.sindx,sidnew))
         L = np.array([sensors[si].x for si in sindx_new])
-        CRB = np.array([sensors[si].getCRB()/(abs(gn[i])**2) for i, si in enumerate(sindx_new)])
+        CRB = np.array([sensors[si].getnominalCRB() for i, si in enumerate(sindx_new)]) # Using nominal
+#        CRB = np.array([sensors[si].getCRB()/(abs(gn[i])**2) for i, si in enumerate(sindx_new)]) # Using est. gain
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]
@@ -178,7 +179,8 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Me2 = rn*rn
         Ns = len(idx)
         L = np.array([sensors[cls.sindx[si]].x for si in idx])
-        CRB = np.array([sensors[cls.sindx[si]].getCRB()/(abs(cls.g[si])**2) for si in idx])
+        CRB = np.array([sensors[cls.sindx[si]].getnominalCRB() for si in idx])# Using nominal
+#        CRB = np.array([sensors[cls.sindx[si]].getCRB()/(abs(cls.g[si])**2) for si in idx])
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]
@@ -234,7 +236,8 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Me2 = np.array(cls.r) * np.array(cls.r)
         Ns = cls.N
         L = np.array([sensors[si].x for si in cls.sindx])
-        CRB = np.array([sensors[si].getCRB()/(abs(gi)**2) for (si, gi) in zip(cls.sindx, cls.g)])
+        CRB = np.array([sensors[si].getnominalCRB() for (si, gi) in zip(cls.sindx, cls.g)])
+#        CRB = np.array([sensors[si].getCRB()/(abs(gi)**2) for (si, gi) in zip(cls.sindx, cls.g)])
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]
@@ -347,7 +350,8 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Me2 = cls.r * cls.r
         Ns = cls.N
         L = np.array([sensors[si].x for si in cls.sindx])
-        CRB = np.array([sensors[si].getCRB()/(abs(gi)**2) for (si, gi) in zip(cls.sindx, cls.g)])
+        CRB = np.array([sensors[si].getnominalCRB() for (si, gi) in zip(cls.sindx, cls.g)])
+#        CRB = np.array([sensors[si].getCRB()/(abs(gi)**2) for (si, gi) in zip(cls.sindx, cls.g)])
         # Get constants
         Z = cls.Zdict[Ns-2]
         Wi = cls.Widict[Ns-2]

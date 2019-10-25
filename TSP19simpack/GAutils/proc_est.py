@@ -218,10 +218,10 @@ def plot_graph(Gin, sigs, sensors, rd_wt, fignum, plt, garda, mode=0):
 
     plt.figure(fignum)
     nx.draw_networkx(G, pos,  edge_color=edge_alphas,
-                               edge_cmap=plt.cm.copper_r, width=1.5)
+                               edge_cmap=plt.cm.copper_r, width=0.2)
     edges = nx.draw_networkx_edges(G, pos, node_size=node_sizes, arrowstyle='->',
                                arrowsize=10, edge_color=edge_alphas,
-                               edge_cmap=plt.cm.copper_r, width=1.5)
+                               edge_cmap=plt.cm.copper_r, width=0.2+1.8*np.array(edge_alphas))
     # set alpha value for each edge,  edge_color=edge_colors,
 #    i=0
 #    for (u,v,d) in G.edges(data='weight'):

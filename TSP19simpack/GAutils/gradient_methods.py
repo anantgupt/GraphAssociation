@@ -30,10 +30,15 @@ class Jacobians():
         self.dm = sg.d
         self.M=sg.N
         self.sensx = [sensors[sid].x for sid in sg.sindx]
-
-        crbvec = [sensors[sid].getCRB() for sid in sg.sindx]
-        self.sr = np.sqrt([ cr[0]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
-        self.sd = np.sqrt([ cr[1]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+        if 0:
+            crbvec = [sensors[sid].getCRB() for sid in sg.sindx]
+            self.sr = np.sqrt([ cr[0]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+            self.sd = np.sqrt([ cr[1]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+        else:
+            crbvec = [sensors[sid].getnominalCRB() for sid in sg.sindx]
+            self.sr = np.sqrt([ cr[0] for cr in crbvec])
+            self.sd = np.sqrt([ cr[1] for cr in crbvec])
+            
         self.J_mat = np.zeros((2*sg.N, 4))
     
     def get_J(cls, pos):
@@ -59,7 +64,6 @@ def gauss_newton(sg, sensors, init, itera, w=[1,0]):
     d_obs = sg.d
     M = sg.N # Number of residuals
     xvec = x - [sensors[sid].x for sid in sg.sindx]
-    crbvec = [sensors[sid].getCRB() for sid in sg.sindx]
     
     yvec = y * np.ones(M)
     rvec = r_eval([xvec, yvec])
@@ -101,9 +105,14 @@ def lm_refine(sg, sensors, init, itera, w=[1,0]):
     """LM algorithm (GD+NLLS) for position refinement"""
     r_obs = sg.r
     d_obs = sg.d
-    crbvec = [sensors[sid].getCRB() for sid in sg.sindx]
-    sr = np.sqrt([ cr[0]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
-    sd = np.sqrt([ cr[1]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+    if 0:
+        crbvec = [sensors[sid].getCRB() for sid in sg.sindx]
+        sr = np.sqrt([ cr[0]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+        sd = np.sqrt([ cr[1]/abs(g)**2 for (cr, g) in zip(crbvec,sg.g)])
+    else:
+        crbvec = [sensors[sid].getnominalCRB() for sid in sg.sindx]
+        sr = np.sqrt([ cr[0] for cr in crbvec])
+        sd = np.sqrt([ cr[1] for cr in crbvec])
     sensx = [sensors[sid].x for sid in sg.sindx]
     
     def get_res(init):

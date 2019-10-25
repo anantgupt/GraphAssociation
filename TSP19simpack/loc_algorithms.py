@@ -53,17 +53,17 @@ scene = scene_init
 signal_mag =1 # NOTE: Set this carefully
 #    targets[0]=[PointTarget(x,y,1) for x,y in np.random(2,Nob)*10]
 sensors = []
-#sensors.append(ob.Sensor(-5, 0))
+sensors.append(ob.Sensor(-5, 0))
 sensors.append(ob.Sensor(-3, 0))
 sensors.append(ob.Sensor(-1, 0))
 sensors.append(ob.Sensor(1, 0))
 sensors.append(ob.Sensor(3, 0))
-#sensors.append(ob.Sensor(5, 0))
+sensors.append(ob.Sensor(5, 0))
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [4] #cfg.Noba
+Noba = [29] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-10
+snra = np.ones(Nf)*35
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -86,6 +86,34 @@ KF_er = np.zeros([Nf,2])
 asc_targets = np.zeros(Nf)
 ospa_error = np.zeros([Nf,3])
 plt.close('all')
+
+np.random.seed(32)
+
+cfgp = {'Nsel': [],# Genie info on # targets
+                'rd_wt':cfg.rd_wt,
+                'static_snapshot': cfg.static_snapshot,
+                'sep_th':cfg.sep_th,
+                'pmiss':cfg.pmiss,
+                'estalgo':cfg.estalgo, 
+                'osps':cfg.osps,
+                'n_Rc':cfg.n_Rc,
+                'n_pfa':cfg.n_pfa,
+                # Association
+                'rob':cfg.roba[0],
+                'mode': cfg.mode,
+                'hscale':cfg.hscale,
+                'incr':cfg.incr,
+                'hN': cfg.hN,
+                'ag_pfa':cfg.ag_pfa,
+                'al_pfa':cfg.al_pfa,
+                'Tlen':cfg.Tlen,
+                # Gauss Newton
+                'gn_steps':cfg.gn_steps,
+                'fu_alg':cfg.fu_alg
+                }
+cfgp['rob'] = 0
+cfgp['pmiss']=0.2
+    
 for f in range(Nf):  # Loop over frames
     targets_list = []
     for plt_n in range(3,6): plt.figure(plt_n), plt.clf()
@@ -101,8 +129,10 @@ for f in range(Nf):  # Loop over frames
     for tno, target in enumerate(scene):
         target_current, AbsPos = pr.ProcDyms(target, dt, tfa_list)
         for sensorID, sensor in enumerate(sensors):
-            pure_beat = pr.get_beat(sensor, target, AbsPos[sensorID])
-            beat[sensorID, :, :] += pure_beat
+            random_number = np.random.rand()
+            if random_number>cfgp['pmiss']: #Miss target otherwise
+                pure_beat = pr.get_beat(sensor, target, AbsPos[sensorID])
+                beat[sensorID, :, :] += pure_beat
             garda = pr.get_gard_true(sensor, target)
             gardat[sensorID].r=np.append(gardat[sensorID].r,garda.r)
             gardat[sensorID].d=np.append(gardat[sensorID].d,garda.d)
@@ -132,31 +162,10 @@ for f in range(Nf):  # Loop over frames
 #    ordered_links, forward_links = am.band_prune(garda_sel, sensors)
 #    pr.plot_orderedlinks(ordered_links, garda_sel, sensors, rd_wt, 21, plt)
     #%% Graph Algo
-    cfgp = {'Nsel': [],# Genie info on # targets
-                'rd_wt':cfg.rd_wt,
-                'static_snapshot': cfg.static_snapshot,
-                'sep_th':cfg.sep_th,
-                'pmiss':cfg.pmiss,
-                'estalgo':cfg.estalgo, 
-                'osps':cfg.osps,
-                'n_Rc':cfg.n_Rc,
-                'n_pfa':cfg.n_pfa,
-                # Association
-                'rob':cfg.roba[0],
-                'mode': cfg.mode,
-                'hscale':cfg.hscale,
-                'incr':cfg.incr,
-                'hN': cfg.hN,
-                'ag_pfa':cfg.ag_pfa,
-                'al_pfa':cfg.al_pfa,
-                'Tlen':cfg.Tlen,
-                # Gauss Newton
-                'gn_steps':cfg.gn_steps,
-                'fu_alg':cfg.fu_alg
-                }
     
+    rob = cfgp['rob']
     t=time.time()
-    G1, rtime_make = grpr.make_graph(garda_sel, sensors, 0)
+    G1, rtime_make = grpr.make_graph(garda_sel, sensors, rob)
     print('Graph gen took {}s'.format(rtime_make))
     
     G0 = cp.deepcopy(G1)
@@ -165,7 +174,7 @@ for f in range(Nf):  # Loop over frames
     crb_min =np.array([1e-2, 1e-2])
     t=time.time()
     min_gsigs1, glen, rtime_assoc = grpr.get_minpaths(G0, sensors, 'Relax', cfgp)
-    print('GA-DFS+Relax Association took {}s'.format(time.time()-t))
+    print('GA-DFS+Relax Association took {}, {}s'.format(rtime_assoc, time.time()-t))
         #%%
     pr.plot_graph(G1, min_gsigs1, sensors, rd_wt, 77, plt, garda_sel) # From Relax
     pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
@@ -193,7 +202,7 @@ for f in range(Nf):  # Loop over frames
     from GAutils import mcft as mcft
     t=time.time()
     min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
-    print('Min cost-Flow Association took {}s'.format(time.time()-t))
+    print('Min cost-Flow Association took {}, {}s'.format(rtime_assoc3, time.time()-t))
     #%%
     
     for sig in min_gsigs1:
@@ -204,7 +213,7 @@ for f in range(Nf):  # Loop over frames
     for gtr in min_gsigs1:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
-    pr.plot_scene(plt, scene, sensors, 76, 'Graph pruning detects {} targets'.format(len(min_gsigs1)))
+    pr.plot_scene(plt, scene, sensors, 76, 'GA-DFS detects {} targets'.format(len(min_gsigs1)))
 #    for sig in min_gsigs3:
 #        [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
 #        sig.state_end.mean = new_pos
@@ -212,7 +221,7 @@ for f in range(Nf):  # Loop over frames
     for gtr in min_gsigs3:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
-    pr.plot_scene(plt, scene, sensors, 75, 'Graph pruning detects {} targets'.format(len(min_gsigs3)))
+    pr.plot_scene(plt, scene, sensors, 75, 'Min cost Flow detects {} targets'.format(len(min_gsigs3)))
     
     break # Stop here (Older code ahead)
     
@@ -574,37 +583,38 @@ for f in range(Nf):  # Loop over frames
 
 
 #%% Final Plotting
-# plt.switch_backend('Qt4Agg')  
-plt.figure(11)
-plt.bar(range(3), np.mean(runtime, 1), tick_label=alg_name)
-#plt.imshow(np.abs(fft1))
-plt.draw()
-#pickle.dump(plt.figure(1), open("plot.pickle", "wb"))
-#plt.savefig('test.eps',Transparent=True)
-plt.figure(100)
-assgn = zip(*rtime_algo)
-plt.bar(range(len(rtime_algo)), list(rtime_algo.values()), tick_label=list(rtime_algo.keys()))
-# Analyze track quality
-plt.figure(12)
-plt.plot(St_er)
-plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title('Error Nearest Phantom(Solid), Auto KF(Dashed)')
-#plt.figure(5)
-plt.plot(Auto_er, linestyle='--'),plt.legend(['x','y','v_x','x','y','v_x'])
-# Ananlyze
-capt13 = ['Overall','Localization','Cardinality']
-plt.figure(13)
-for i in range(3):
-    plt.subplot(1,3,i+1)
-    plt.plot(Noba, ospa_error[:,i], 'bs')
-    plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title(capt13[i])
-
-#capt4 = ['Range Error','Doppler Error']
-#plt.figure(14)
-#for i in range(2):
-#    plt.subplot(1,2,i+1)
-#    plt.errorbar(Noba, np.mean(rd_error[:,i], axis =1), np.std(rd_error[:,i], axis =1))
-#    plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title(capt4[i])
-#plt.show()
+if 0:
+    # plt.switch_backend('Qt4Agg')  
+    plt.figure(11)
+    plt.bar(range(3), np.mean(runtime, 1), tick_label=alg_name)
+    #plt.imshow(np.abs(fft1))
+    plt.draw()
+    #pickle.dump(plt.figure(1), open("plot.pickle", "wb"))
+    #plt.savefig('test.eps',Transparent=True)
+    plt.figure(100)
+    assgn = zip(*rtime_algo)
+    plt.bar(range(len(rtime_algo)), list(rtime_algo.values()), tick_label=list(rtime_algo.keys()))
+    # Analyze track quality
+    plt.figure(12)
+    plt.plot(St_er)
+    plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title('Error Nearest Phantom(Solid), Auto KF(Dashed)')
+    #plt.figure(5)
+    plt.plot(Auto_er, linestyle='--'),plt.legend(['x','y','v_x','x','y','v_x'])
+    # Ananlyze
+    capt13 = ['Overall','Localization','Cardinality']
+    plt.figure(13)
+    for i in range(3):
+        plt.subplot(1,3,i+1)
+        plt.plot(Noba, ospa_error[:,i], 'bs')
+        plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title(capt13[i])
+    
+    #capt4 = ['Range Error','Doppler Error']
+    #plt.figure(14)
+    #for i in range(2):
+    #    plt.subplot(1,2,i+1)
+    #    plt.errorbar(Noba, np.mean(rd_error[:,i], axis =1), np.std(rd_error[:,i], axis =1))
+    #    plt.xlabel('Nf'),plt.ylabel('RMS Error'),plt.title(capt4[i])
+    #plt.show()
 
 # if __name__ == "__main__":
 #	main()

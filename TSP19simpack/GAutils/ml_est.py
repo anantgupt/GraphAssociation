@@ -201,7 +201,7 @@ def est_prob_joint(template, sensors, obs, w=[1,0]): # Link prob cond. over obs.
         ga = gard_obs.g # Array of est gains
         
         ind = np.argmin(abs(dR)) # Finds closest point
-        crb = np.sqrt(sensor.getCRB())*10# /(abs(ga[ind])**2))
+        crb = np.sqrt(sensor.getnominalCRB())*10# /(abs(ga[ind])**2))
         prob = norm.pdf(w[0]*dR/crb[0]) * norm.pdf(w[1]*dD/crb[1])
 #        Bhattacharya distance type prob
         pre += prob[ind]/(eps+sum(prob))
