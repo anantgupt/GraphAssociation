@@ -9,9 +9,12 @@ Created on Thu Sep 20 12:25:11 2018
 from __future__ import division
 # Add classes for Extended Targets
 import numpy as np
+import sympy as sp
+
 from GAutils import proc_est as pr
 from itertools import combinations
 from GAutils import config as cfg
+from GAutils import PCRLB as pcrlb
 
 class FMCWprms:
     c = 3e8  # Speed of light
@@ -134,7 +137,38 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             Wit = np.linalg.inv(0.5 * Zt @ Zt.T)
             self.Zdict[Ninp]=Zt
             self.Widict[Ninp] = Wit
+            
+        # For Kalman Filter Precompute H function
+        self.Pinit_getter = pcrlb.CRBconverter()
+        
+        x, y, vx, vy, sx = sp.symbols('x y vx vy sx')
+
+        r = sp.sqrt((x-sx)**2+y**2)
+        d = ((x-sx)*vx+y*vy)/r
+        self.hk = [sp.lambdify([x,y,vx,vy,sx], r, "numpy"), sp.lambdify([x,y,vx,vy,sx], d, "numpy")]
+        varl = [x, y, vx, vy]
+        self.f =[[] for _ in range(2)] 
+        for v1 in range(4):
+            e = (r.diff(varl[v1]))
+            self.f[0].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
+        for v1 in range(4):
+            e = (d.diff(varl[v1]))
+            self.f[1].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
     
+    def get_Pinit(cls, sensors, target): # TODO: Get Pinit in principled manner
+        xr,yr,vxr,vyr = target.state
+        Am1 = np.zeros((4,4))
+        for s, sensor in enumerate(sensors):       
+            crb = sensor.getnominalCRB()
+            cre = crb[0]
+            cde = crb[1]
+            F_mat = np.zeros((4,4))
+            for v1 in range(4):
+                for v2 in range(4):
+                    F_mat[v1,v2] = cls.Pinit_getter.f[v1][v2](xr, yr, vxr, vyr, cre, cde)
+            Am1[:,:] += F_mat
+        return 4*np.diag(([cre,cre,cde,cde]))
+        
     def get_newfit_error(cls, sensors, rnew, dnew, gnew, sidnew):
         # Reports geometry fitting error for given R,D pair
         rn = np.hstack((cls.r, rnew))
@@ -171,6 +205,27 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
 
         gc = ((cfg.rd_wt[0]*(V_mat@Z/2)**2/M1var + cfg.rd_wt[1]*((U_mat@Z/2)**2)/M2var))
         return sum(gc)
+    
+    def get_newfit_error_ekf(cls, sensors, rnew, dnew, gnew, sindx):
+        
+        Rk = np.diag(sensors[sindx].getnominalCRB())
+        if cls.N>1: # Fetch previous State
+            Stp = cls.state_end.mean
+            Pp = cls.state_end.cov
+            Hk = np.zeros((2,4))
+            for i in range(2):
+                for j in range(4):
+                    Hk[i,j] = cls.f[i][j](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x)
+            Ik = Hk @ Pp @ Hk.T + Rk # Innovation covariance (2x2)
+            Kk = Pp @ Hk.T @ np.linalg.inv(Ik) # Kalman Gain (4x2)
+            yk = np.array([rnew, dnew]) # Measurement
+            yhk = np.array([cls.hk[i](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x) for i in range(2)])
+            Stn = Stp + Kk @ (yk - yhk)
+            Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
+            
+            return 1#np.inner((yk - yhk), np.linalg.inv(Ik)@(yk - yhk))
+        else: # Compute initial covariance
+            return 1
 
     def get_partialest(cls, sensors, idx, gprev, modf):# returns estimate for given index of nodes
         rn = np.array([cls.r[si] for si in idx])
@@ -438,28 +493,32 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             else:
                 raise ValueError('Attempted illegal add with {},{} at sensor ({},{})'.format(rp[0], rs, sindxp[0], sindx))
         
-    def add_update(cls, rs, ds, sindx, sensors):
-        # Naive method by computing all pairwise dist
+    def add_update(cls, rs, ds, gs, sindx, sensors):
+        # Kalman Filter in Space (Oct 25, 2019)
         rp = cls.r
         dp = cls.d
         Np = cls.N
         # compute x, y, vx from all obs can be used to update state)
         sindxp = cls.sindx
-
+        
+        Fk = np.eye(4)
+        Rk = np.diag(sensors[sindx].getnominalCRB())
         if Np>1: # Fetch previous State
-            posM = [] #np.zeros(2, N*(N-1)/2)
-            for i in range(Np):
-                trg = pr.get_pos_from_rd(rp[i], rs, dp[i], ds, sindxp[i], sindx, sensors)
-                posM.append(trg.state)
-            Nt = Np * (Np -1)/2
             Stp = cls.state_end.mean
-            Pp = cls.state_end.cov + np.outer(Stp,Stp)
-            Stn = ( Stp * Nt + np.sum(posM, axis=0) )/(Nt + Np)
-            Pn = ( Pp * Nt + np.array(posM).T @ np.array(posM) )/(Nt + Np)
-            Pn = Pn - np.outer(Stn,Stn)
+            Pp = cls.state_end.cov
+            Hk = np.zeros((2,4))
+            for i in range(2):
+                for j in range(4):
+                    Hk[i,j] = cls.f[i][j](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x)
+            Ik = Hk @ Pp @ Hk.T + Rk # Innovation covariance (2x2)
+            Kk = Pp @ Hk.T @ np.linalg.inv(Ik) # Kalman Gain (4x2)
+            yk = np.array([rs, ds]) # Measurement
+            yhk = np.array([cls.hk[i](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x) for i in range(2)])
+            Stn = Stp + Kk @ (yk - yhk)
+            Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
         else: # Compute initial covariance
             trg = pr.get_pos_from_rd(rp[0], rs, dp[0], ds, sindxp[0], sindx, sensors)
-            Pn = np.zeros(4) 
+            Pn = cls.get_Pinit([sensors[sindxp[0]], sensors[sindx]], trg) 
             Stn = np.array(trg.state) # NOTE: Can give some prior here
         # Update previous covariance
         new_state = State(Stn, Pn)
@@ -472,8 +531,15 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         
         cls.r = np.append(cls.r, rs)
         cls.d = np.append(cls.d, ds)
+        cls.g = np.append(cls.g, gs)
         cls.sindx = np.append(cls.sindx, sindx)
         cls.N = cls.N+1
+        curs = cls.state_head
+        gc=[]
+        while curs is not None:
+            gc.append(np.trace(curs.cov))
+            curs = curs.next
+        cls.gc = gc
         
     def add_update2(cls, rs, ds, sindx, lij, lc):
         # adding path using Kalman Filter

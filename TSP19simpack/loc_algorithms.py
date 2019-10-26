@@ -53,17 +53,17 @@ scene = scene_init
 signal_mag =1 # NOTE: Set this carefully
 #    targets[0]=[PointTarget(x,y,1) for x,y in np.random(2,Nob)*10]
 sensors = []
-sensors.append(ob.Sensor(-5, 0))
+#sensors.append(ob.Sensor(-5, 0))
 sensors.append(ob.Sensor(-3, 0))
 sensors.append(ob.Sensor(-1, 0))
 sensors.append(ob.Sensor(1, 0))
 sensors.append(ob.Sensor(3, 0))
-sensors.append(ob.Sensor(5, 0))
+#sensors.append(ob.Sensor(5, 0))
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [29] #cfg.Noba
+Noba = [9] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*35
+snra = np.ones(Nf)*5
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']

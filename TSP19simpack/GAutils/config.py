@@ -20,7 +20,7 @@ max_sensors = 20 # Set based on script4 max value
 N_cpu = -1 # Set Num of parallel cores automatically
 
 # Scene simulation iterabes
-roba = 1*np.ones(Ninst) # Robustness level (Should be less than N_sens-1)
+roba = 0*np.ones(Ninst) # Robustness level (Should be less than N_sens-1)
 snra = -10*np.ones(Ninst)
 Nsensa = 4*np.ones(Ninst, dtype='int')
 Noba = 10*np.ones(Ninst, dtype='int')  # number of targets

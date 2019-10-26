@@ -448,13 +448,14 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                 if sig.N>=minP-1 and sig.gc is not None: # Atleast 3 elements
                     l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
                     L3+=0 # If ONLY Counting paths, make 1, ELSE 0
-#                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) USE THIS TO DEBUG
+                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
                 
                     if sig.N>=minP and l_cost < lg_thres[0][sig.N-1] and abs(sum(sig.gc))<lg_thres[1][sig.N-1]: # Based on CRLB
                         sig.llr = l_cost
                         sig.pid = pid
                         sel_sigs.append(sig)
                         update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
+                        print(sig.state_end.mean)
                     elif sig.N>=minP-1: # NOTE this can be moved to outer If cond (minP) also!!
                         try:
                             Ns = len(sensors)
