@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-1
+snra = np.ones(Nf)*-10
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -113,6 +113,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 }
 cfgp['rob'] = 0
 cfgp['pmiss']=0.05
+cfgp['mode']='Relax' # SPEKF
     
 for f in range(Nf):  # Loop over frames
     targets_list = []

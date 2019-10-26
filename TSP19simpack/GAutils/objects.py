@@ -226,7 +226,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             Stn = Stp + Kk @ (yk - yhk)
             Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
             
-            return 1#np.inner((yk - yhk), np.linalg.inv(Ik)@(yk - yhk))
+            return np.inner((yk - yhk), np.linalg.inv(Ik)@(yk - yhk))
         else: # Compute initial covariance
             return 1
 
@@ -543,7 +543,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         while curs is not None:
             gc.append(np.trace(curs.cov)/norm_const)
             curs = curs.next
-        cls.gc = gc
+        cls.gc = np.diag(Pn)/norm_const*cls.N/2 # gc
         
     def add_update2(cls, rs, ds, sindx, lij, lc):
         # adding path using Kalman Filter
