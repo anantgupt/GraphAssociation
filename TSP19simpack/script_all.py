@@ -30,7 +30,7 @@ def run_it(datef, rng, itrx, itry):
 def main():
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
-    cfg.Nf = 50 # was 50
+    cfg.Nf = 100 # was 50
     cfg.N_cpu = -1
     
     cfg.fu_alg = 'ls'
@@ -42,7 +42,7 @@ def main():
     Nob_rng = np.linspace(1,31,16, dtype='int') 
     swidth_rng = [0.25,0.5,1,2,3,4,5,6,8]
     
-    rob_std = 1
+    rob_std = 0
     sep_th_std = 1
     snr_std = -10
     Nsens_std=4

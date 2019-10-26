@@ -53,17 +53,17 @@ scene = scene_init
 signal_mag =1 # NOTE: Set this carefully
 #    targets[0]=[PointTarget(x,y,1) for x,y in np.random(2,Nob)*10]
 sensors = []
-#sensors.append(ob.Sensor(-5, 0))
+sensors.append(ob.Sensor(-5, 0))
 sensors.append(ob.Sensor(-3, 0))
 sensors.append(ob.Sensor(-1, 0))
 sensors.append(ob.Sensor(1, 0))
 sensors.append(ob.Sensor(3, 0))
-#sensors.append(ob.Sensor(5, 0))
+sensors.append(ob.Sensor(5, 0))
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [9] #cfg.Noba
+Noba = [29] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*5
+snra = np.ones(Nf)*-1
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -112,7 +112,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'fu_alg':cfg.fu_alg
                 }
 cfgp['rob'] = 0
-cfgp['pmiss']=0.2
+cfgp['pmiss']=0.05
     
 for f in range(Nf):  # Loop over frames
     targets_list = []
@@ -138,7 +138,7 @@ for f in range(Nf):  # Loop over frames
             gardat[sensorID].d=np.append(gardat[sensorID].d,garda.d)
             gardat[sensorID].g=np.append(gardat[sensorID].g,garda.g)
         if not static_snapshot: targets_list.append(target_current)
-        print('Target{}: x={},y={},vx={},vy={}'.format(tno+1, target_current.x, target_current.y,target_current.vx,target_current.vy))
+#        print('Target{}: x={},y={},vx={},vy={}'.format(tno+1, target_current.x, target_current.y,target_current.vx,target_current.vy))
     for sensorID, sensor in enumerate(sensors):
         beat[sensorID, :, :] = pr.add_cnoise(beat[sensorID, :, :], sensor.meas_std) # Add noise
     t=time.time()
@@ -167,17 +167,17 @@ for f in range(Nf):  # Loop over frames
     t=time.time()
     G1, rtime_make = grpr.make_graph(garda_sel, sensors, rob)
     print('Graph gen took {}s'.format(rtime_make))
-    
     G0 = cp.deepcopy(G1)
-    [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G0, sensors)
-    
+    if False:    
+        [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G0, sensors)
+        pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
     crb_min =np.array([1e-2, 1e-2])
     t=time.time()
     min_gsigs1, glen, rtime_assoc = grpr.get_minpaths(G0, sensors, 'Relax', cfgp)
-    print('GA-DFS+Relax Association took {}, {}s'.format(rtime_assoc, time.time()-t))
+    print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc, time.time()-t))
         #%%
     pr.plot_graph(G1, min_gsigs1, sensors, rd_wt, 77, plt, garda_sel) # From Relax
-    pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
+    
     if False: # Max flow Association (Not good)
         Gnx, pos,ed_lbl = pr.plot_graph2(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
         import networkx as nx

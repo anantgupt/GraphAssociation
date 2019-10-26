@@ -209,7 +209,7 @@ def get_l_thres(sig, scale, al_pfa):
     else:
         return scale[0]*chi2.isf(al_pfa, 2*sig.N, loc=0, scale=1)# TODO: Wald statistic is normalized by CRB
 
-def get_order(G, new_nd, target_nds, path, sensors): # Slim version, Oct 2019
+def get_order(G, new_nd, target_nds, path, sensors, USE_EKF=False): # Slim version, Oct 2019
     if target_nds:
         target_nds_valid = list(filter(lambda x: ~x.visited, target_nds))
         if path.N<2: # Cannot calculate straigtness with 2 nodes
@@ -217,11 +217,13 @@ def get_order(G, new_nd, target_nds, path, sensors): # Slim version, Oct 2019
         else:
             g_cost=[]
             for tnd in target_nds_valid:
-                try:
+                if USE_EKF:
+                    new_cost = path.get_newfit_error_ekf(sensors, tnd.r, tnd.d, tnd.g, tnd.sid)
+                else:
                     new_cost = path.get_newfit_error(sensors, tnd.r, tnd.d, tnd.g, tnd.sid)
-                except ValueError as err:
-                    print(err.args)
-                    continue # Can print error happened     
+#                except ValueError as err:
+#                    print(err.args)
+#                    continue # Can print error happened     
                 g_cost.append(new_cost) # use trace maybe
         srtind = np.argsort(g_cost)
         childs = [target_nds[ind] for ind in srtind]
@@ -427,7 +429,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
     L3 = 0 # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     if not nd.visited:# Check if tracks could be joined
-        childs = get_order(G, nd, nd.lkf, sig, sensors)
+        childs = get_order(G, nd, nd.lkf, sig, sensors, cfgp['mode']=='SPEKF')
         L3+=len(childs) # If counting all edges, make 1
         for ndc in childs:# Compute costs for all neighbors
             if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
@@ -435,7 +437,10 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                 pnext = cp.copy(pid)
                 pnext.append(ndc.oid)
                 ndc_sig = cp.copy(sig)
-                ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
+                if cfgp['mode']=='SPEKF':
+                    ndc_sig.add_update_ekf(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
+                else:
+                    ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 if ndc_sig.N>2:
                     l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
                     if l_cost>lg_thres[0][sig.N-1]: # Avoid going deeper as cost only increases
@@ -448,14 +453,14 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                 if sig.N>=minP-1 and sig.gc is not None: # Atleast 3 elements
                     l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
                     L3+=0 # If ONLY Counting paths, make 1, ELSE 0
-                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
+#                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
                 
                     if sig.N>=minP and l_cost < lg_thres[0][sig.N-1] and abs(sum(sig.gc))<lg_thres[1][sig.N-1]: # Based on CRLB
                         sig.llr = l_cost
                         sig.pid = pid
                         sel_sigs.append(sig)
                         update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
-                        print(sig.state_end.mean)
+#                        print(sig.state_end.mean)
                     elif sig.N>=minP-1: # NOTE this can be moved to outer If cond (minP) also!!
                         try:
                             Ns = len(sensors)
@@ -641,7 +646,7 @@ def get_minpaths(G, sensors, mode, cfgp):
     sel_sigs =[] # Note: wt includes the crb_min for range, doppler
     L3 = 0
     glen = [sum(len(g) for g in G)]
-    dispatcher ={'DFS':DFS, 'Brute': Brute, 'Relax': Relax, 'Brute_iter': Brute_iter}
+    dispatcher ={'DFS':DFS, 'Brute': Brute, 'SPEKF': Relax, 'Relax': Relax, 'Brute_iter': Brute_iter}
     if mode in ['DFS','Brute']:
         for i, sobs in enumerate(G):
             for pid, sobc in enumerate(sobs):
@@ -659,7 +664,7 @@ def get_minpaths(G, sensors, mode, cfgp):
             if sig!=None:
                 sig_new.append(sig)
         sel_sigs= sig_new
-    if mode=='Relax':#Run with relaxed params
+    if mode=='Relax' or mode=='SPEKF':#Run with relaxed params
         glen, L3 = dispatcher[mode](G, sel_sigs, sensors, glen, cfgp)
     if mode=='Brute_iter':#Run with relaxed params
         glen, L3 = dispatcher[mode](G, sel_sigs, sensors, glen, cfgp)

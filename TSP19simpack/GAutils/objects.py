@@ -211,7 +211,10 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Rk = np.diag(sensors[sindx].getnominalCRB())
         if cls.N>1: # Fetch previous State
             Stp = cls.state_end.mean
-            Pp = cls.state_end.cov
+            if cls.N>2:
+                Pp = cls.state_end.cov
+            else:
+                Pp = cls.get_Pinit([sensors[cls.sindx[0]], sensors[sindx]], PointTarget(*Stp)) 
             Hk = np.zeros((2,4))
             for i in range(2):
                 for j in range(4):
@@ -493,7 +496,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             else:
                 raise ValueError('Attempted illegal add with {},{} at sensor ({},{})'.format(rp[0], rs, sindxp[0], sindx))
         
-    def add_update(cls, rs, ds, gs, sindx, sensors):
+    def add_update_ekf(cls, rs, ds, gs, sindx, sensors):
         # Kalman Filter in Space (Oct 25, 2019)
         rp = cls.r
         dp = cls.d
@@ -535,9 +538,10 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         cls.sindx = np.append(cls.sindx, sindx)
         cls.N = cls.N+1
         curs = cls.state_head
-        gc=[]
+        norm_const = np.trace(curs.cov)
+        gc=[1]
         while curs is not None:
-            gc.append(np.trace(curs.cov))
+            gc.append(np.trace(curs.cov)/norm_const)
             curs = curs.next
         cls.gc = gc
         
@@ -569,7 +573,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             Stp = cls.state_end.mean
             Kk = Pp @ np.linalg.inv(Pp + R)
         else: # Compute initial covariance
-            Pp = np.zeros(2) 
+            Pp = np.zeros(4) 
             Stp = [0,0] # NOTE: Can give some prior here
             Kk = np.eye(2)
         # Update previous covariance
