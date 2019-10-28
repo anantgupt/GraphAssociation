@@ -19,7 +19,7 @@ from GAutils import PCRLB as pcrlb
 class FMCWprms:
     c = 3e8  # Speed of light
 
-    def __init__(self, B=0.5e9, Ts=1 / 82e4, fc=6e10, Ni=64, Nch=64): # was 150M, 1.28M (1m, 0.7816m/s); (0.5G,0.8M)->(0.3m,0.5m/s)
+    def __init__(self, B=0.15e9, Ts=1 / 128e4, fc=6e10, Ni=64, Nch=64): # was 150M, 1.28M (1m, 0.7816m/s); (0.5G,0.82M)->(0.3m,0.5m/s)
         self.fc = fc
         self.B = B
         self.Ts = Ts

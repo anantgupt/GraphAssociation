@@ -5,7 +5,7 @@ Created on Wed Oct 16 13:34:43 2019
 Modified tools for mcftools
 @author: anantgupta
 """
-
+import collections
 
 
 #def calc_HS_histogram(image, roi):
@@ -88,3 +88,27 @@ def create_tags(garda, sensors):
 
 	return detections, tags, images
 
+def create_tags_filt(garda, sensors, sigs):
+	# Creates graph from all obs in garda excluding those used in sigs
+	oid_seen = collections.defaultdict(list)
+	for sig in sigs:
+		for sid,pid in zip(sig.sindx, sig.pid):
+#			if sid not in oid_seen:
+#				oid_seen[sid] = [pid]
+#			else:
+			oid_seen[sid]+=pid
+	detections={}
+	images={}
+	tags = {}
+	for si, gard in enumerate(garda):
+		image_name='Sensor'+str(si+1)
+		rects=[]
+		L=len(gard.g)
+		for oid in range(L):
+			if oid not in oid_seen[si]:
+				rects.append([gard.r[oid], gard.d[oid], gard.g[oid], si, 0.05])# NOTE: Try replacing rect[4] with gard.g[oid]
+		detections[image_name] = rects
+		tags[image_name] = [rect[:-1] for rect in rects]
+		images[image_name] = image_name
+
+	return detections, tags, images

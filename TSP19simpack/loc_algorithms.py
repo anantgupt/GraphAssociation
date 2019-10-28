@@ -53,17 +53,17 @@ scene = scene_init
 signal_mag =1 # NOTE: Set this carefully
 #    targets[0]=[PointTarget(x,y,1) for x,y in np.random(2,Nob)*10]
 sensors = []
-sensors.append(ob.Sensor(-5, 0))
+#sensors.append(ob.Sensor(-5, 0))
 sensors.append(ob.Sensor(-3, 0))
 sensors.append(ob.Sensor(-1, 0))
 sensors.append(ob.Sensor(1, 0))
 sensors.append(ob.Sensor(3, 0))
-sensors.append(ob.Sensor(5, 0))
+#sensors.append(ob.Sensor(5, 0))
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [29] #cfg.Noba
+Noba = [9] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-10
+snra = np.ones(Nf)*-1
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -87,7 +87,7 @@ asc_targets = np.zeros(Nf)
 ospa_error = np.zeros([Nf,3])
 plt.close('all')
 
-np.random.seed(32)
+np.random.seed(3)
 
 cfgp = {'Nsel': [],# Genie info on # targets
                 'rd_wt':cfg.rd_wt,
@@ -112,9 +112,9 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'fu_alg':cfg.fu_alg
                 }
 cfgp['rob'] = 0
-cfgp['pmiss']=0.05
-cfgp['mode']='Relax' # SPEKF
-    
+cfgp['pmiss']=0.1
+cfgp['mode']='Relax' # SPEKF, Relax
+
 for f in range(Nf):  # Loop over frames
     targets_list = []
     for plt_n in range(3,6): plt.figure(plt_n), plt.clf()
@@ -174,7 +174,7 @@ for f in range(Nf):  # Loop over frames
         pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
     crb_min =np.array([1e-2, 1e-2])
     t=time.time()
-    min_gsigs1, glen, rtime_assoc = grpr.get_minpaths(G0, sensors, 'Relax', cfgp)
+    min_gsigs1, glen, rtime_assoc = grpr.get_minpaths(G0, sensors, cfgp['mode'], cfgp)
     print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc, time.time()-t))
         #%%
     pr.plot_graph(G1, min_gsigs1, sensors, rd_wt, 77, plt, garda_sel) # From Relax
@@ -200,9 +200,12 @@ for f in range(Nf):  # Loop over frames
         min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
         print('Max-Flow Association took {}s'.format(time.time()-t))
     #%% MCF Association
+    cfgp['mode']='SPEKF' # SPEKF, Relax
     from GAutils import mcft as mcft
     t=time.time()
-    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
+#    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
+#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
+    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
     print('Min cost-Flow Association took {}, {}s'.format(rtime_assoc3, time.time()-t))
     #%%
     

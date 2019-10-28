@@ -83,7 +83,7 @@ class MinCostFlowTracker:
 #		print(prob_joint)
 		return -math.log(prob_joint)
 
-	def build_network(self, garda, sensors, f2i_factor=10000):
+	def build_network(self, garda, sensors, h=0, f2i_factor=10000):
 		self.mcf = pywrapgraph.SimpleMinCostFlow()
 		tol = 0.01
 		for image_name, rects in sorted(self._detections.items()):
@@ -95,18 +95,19 @@ class MinCostFlowTracker:
 			frame_id = self._name2id[image_name]
 			if frame_id == 0:
 				continue
-			prev_image_name = self._id2name[frame_id - 1]
-			if prev_image_name not in self._detections:
-				continue
+			for hi in range(min(h+1, frame_id)):
+				prev_image_name = self._id2name[frame_id - 1 - hi]
+				if prev_image_name not in self._detections:
+					continue
 
-			for i, i_rect in enumerate(self._detections[prev_image_name]):
-				for j, j_rect in enumerate(rects):
-					l1 = math.sqrt((sensors[i_rect[3]].x - sensors[j_rect[3]].x)**2+(sensors[i_rect[3]].y - sensors[j_rect[3]].y)**2) # sensor separation
-					d = sensors[i_rect[3]].fov * l1 + tol # max range delta
-					if abs(i_rect[0]-j_rect[0])<d and abs(i_rect[0]+j_rect[0])>d: # Only add valid links
-#						print(prev_image_name, i, "v",' -> ' ,image_name, j, "u",' : ', int(self._calc_cost_link(i_rect, j_rect, sensors, garda) * 10))
-						self.mcf.AddArcWithCapacityAndUnitCost(self._node2id[(prev_image_name, i, "v")], self._node2id[(image_name, j, "u")],
-							1, int(self._calc_cost_link(i_rect, j_rect, sensors, garda) * 100))
+				for i, i_rect in enumerate(self._detections[prev_image_name]):
+					for j, j_rect in enumerate(rects):
+						l1 = math.sqrt((sensors[i_rect[3]].x - sensors[j_rect[3]].x)**2+(sensors[i_rect[3]].y - sensors[j_rect[3]].y)**2) # sensor separation
+						d = sensors[i_rect[3]].fov * l1 + tol # max range delta
+						if abs(i_rect[0]-j_rect[0])<d and abs(i_rect[0]+j_rect[0])>d: # Only add valid links
+	#						print(prev_image_name, i, "v",' -> ' ,image_name, j, "u",' : ', int(self._calc_cost_link(i_rect, j_rect, sensors, garda) * 10))
+							self.mcf.AddArcWithCapacityAndUnitCost(self._node2id[(prev_image_name, i, "v")], self._node2id[(image_name, j, "u")],
+								1, int(self._calc_cost_link(i_rect, j_rect, sensors, garda) * 100))
 
 	def _make_flow_dict(self):
 		self.flow_dict = {}
@@ -207,7 +208,7 @@ class MinCostFlowTracker:
 		else:
 			return self._brute_force(search_range)
 
-	# Example usage of mcftracker
+	# EXtract using 1 iteration ignoring flow length
 def get_mcfsigs(garda, sensors):
 	# Prepare initial detecton results, ground truth, and images
 	# You need to change below
@@ -258,5 +259,67 @@ def get_mcfsigs(garda, sensors):
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	glen = []
+	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
+	return sigs, glen, L3
+
+	# EXtract using Ns iteration ignoring flow length
+def get_mcfsigs_all(garda, sensors, cfgp):
+	# Prepare initial detecton results, ground truth, and images
+	# You need to change below
+	detections , tags , images = tools.create_tags(garda, sensors)
+
+	# Parameters
+	min_thresh = 0
+	P_enter = 0.1
+	P_exit = 0.1
+	beta = 0.5
+	fib_search = True
+	glen = [sum([len(gard.r) for gard in garda])]
+	Ns = minP = len(sensors)
+	sigs = []
+	# Let's track them!
+	start = time.time()
+
+	for h in range(Ns - cfgp['Tlen']+1): # range(hN)
+		tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)
+		tracker.build_network(garda, sensors, h)
+		optimal_flow, optimal_cost = tracker.run(fib=fib_search, search_range=len(sensors))
+		end = time.time()
+		if False:
+			print("Finished: {} sec".format(end - start))
+			print("Optimal number of flow: {}".format(optimal_flow))
+			print("Optimal cost: {}".format(optimal_cost))
+
+			print("Optimal flow:")
+			print(tracker.flow_dict)
+		
+		if optimal_flow>0:
+			for st in tracker.flow_dict['source']:
+				sid = int(st[0][-1])-1
+				pid = st[1]
+				new_sig = ob.SignatureTracks(garda[sid].r[pid], garda[sid].d[pid], sid, garda[sid].g[pid])
+				newt = list(tracker.flow_dict[list(tracker.flow_dict[st])[0]])[0]#Assuming only single link henceforth NOTE: This could handle more scenarios
+				while newt!='sink':
+					sid = int(newt[0][-1])-1
+					pid = newt[1]
+					new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
+					newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
+				if new_sig.N>=Ns-h:
+					sigs.append(new_sig)
+		if sigs: # Update detections (Pruning)
+			detections , tags , images = tools.create_tags_filt(garda, sensors, sigs)
+		glen.append(sum([len(g) for g in tags]))
+	# If nothing found
+	if not sigs:
+		for sid, sensor in enumerate(sensors):
+			if sid==0:
+				sig_rnd = ob.SignatureTracks(math.sqrt(sensor.x**2+0.01), 0, sid, 1)
+			else:
+				sig_rnd.add_update3(math.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
+		sigs.append(sig_rnd)
+		print('.',end='')
+	V=tracker.mcf.NumNodes()
+	E=tracker.mcf.NumArcs()
+	
 	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	return sigs, glen, L3
