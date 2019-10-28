@@ -75,19 +75,23 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     rd_wt = cfgp['rd_wt'] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 
      #%% Graph Algo
-    
-    t=time.time()
+    G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
+#        runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
+    runtime[4] = sum([len(nd.lkf) for g in G1 for nd in g]) # No of edges, get V from glen
+    runtime[5],_ = grpr.get_BruteComplexity(G1)
+
     if cfgp['mode']=='mcf':
         min_gsigs, glen, runtime[6] = mcft.get_mcfsigs(garda_sel, sensors)
+    elif cfgp['mode']=='mcf_all':
+        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
     else:
-        G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
+        t=time.time()
+        G0,runtime[4] = grpr.make_graph(garda_sel, sensors, 0) # No skip connection
         runtime[1] = time.time() - t
-        runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
-        runtime[5],_ = grpr.get_BruteComplexity(G1)
         if cfg.scene_plots:
             [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
             pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
-        min_gsigs, glen, runtime[6] = grpr.get_minpaths(G1, sensors, cfgp['mode'], cfgp)
+        min_gsigs, glen, runtime[6] = grpr.get_minpaths(G0, sensors, cfgp['mode'], cfgp)
     runtime[2] = time.time() - t # Total time (Make graph+traverse graph)
 
     t = time.time()

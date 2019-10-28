@@ -280,7 +280,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	# Let's track them!
 	start = time.time()
 
-	for h in range(Ns - cfgp['Tlen']+1): # range(hN)
+	for h in range(cfgp['rob']+1): #was Ns - cfgp['Tlen']+1
 		tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)
 		tracker.build_network(garda, sensors, h)
 		optimal_flow, optimal_cost = tracker.run(fib=fib_search, search_range=len(sensors))

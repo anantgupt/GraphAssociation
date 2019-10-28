@@ -34,7 +34,7 @@ def main():
     cfg.N_cpu = -1
     
     cfg.fu_alg = 'ls'
-    cfg.mode = 'mcf'
+    cfg.mode = 'mcf_all'
     
     rob_rng = [0,1,2]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
@@ -43,7 +43,7 @@ def main():
     swidth_rng = [0.25,0.5,1,2,3,4,5,6,8]
     
     rob_std = 1
-    sep_th_std = 1
+    sep_th_std = 0
     snr_std = -10
     Nsens_std=4
     Nob_std=10
@@ -53,9 +53,9 @@ def main():
 
     ##################
     # Nob vs SNR
-    # Nob_rng2 = [1,10, 20, 30]
-    # set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    # run_it(datef, Nob_rng2, 'snr','Nob')
+    Nob_rng2 = [1,10, 20, 30]
+    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+    run_it(datef, Nob_rng2, 'snr','Nob')
     ##################
     snr_rng2 = [-15, -10]
     # # SNR vS Nob

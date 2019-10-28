@@ -111,7 +111,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 0
+cfgp['rob'] = 1
 cfgp['pmiss']=0.1
 cfgp['mode']='Relax' # SPEKF, Relax
 

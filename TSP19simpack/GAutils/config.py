@@ -49,7 +49,7 @@ incr = 2 # Increment in association iterations
 hN = 20 # Relaxation iterations
 ag_pfa = 5e-2 # Sets beginning value of geometric fitting thres 
 al_pfa = 5e-2 # Sets beginning value of likelihood thres
-Tlen = 3 # At least Tlen nodes in track
+Tlen = 3 #was 3, Ns- rob At least Tlen nodes in track
 # Gauss Newton
 fu_alg = 'ls' # Least-Square: 'ls', Huber: 'huber', 'l1','l2': Same as ls but usins cvx
 gn_steps = 5
