@@ -443,7 +443,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                     ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 if ndc_sig.N>2:
                     l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
-                    if l_cost>lg_thres[0][sig.N-1]: # Avoid going deeper as cost only increases
+                    if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
                         continue
                 L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, lg_thres, opt)
 
@@ -454,8 +454,8 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                     l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
                     L3+=0 # If ONLY Counting paths, make 1, ELSE 0
 #                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
-                
-                    if sig.N>=minP and l_cost < lg_thres[0][sig.N-1] and abs(sum(sig.gc))<lg_thres[1][sig.N-1]: # Based on CRLB
+                    deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
+                    if sig.N>=minP and l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB
                         sig.llr = l_cost
                         sig.pid = pid
                         sel_sigs.append(sig)

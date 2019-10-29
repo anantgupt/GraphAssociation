@@ -113,6 +113,37 @@ class State: #Linked list of states: mean, covariance
         self.next = None       
             
 class SignatureTracks: # collection of associated ranges[], doppler[] & estimated vx(scalar).
+    # Precompute Constant matrices
+    Zdict =dict()
+    Widict =dict()
+    for Ninp in range(cfg.max_sensors): # Ninp in [2,Ns] NOTE: Should not be fixed
+        Z_mat = np.eye(Ninp+2)
+        Zt = Z_mat[0:-1,:]-Z_mat[1:,:] # consecutive
+        Zt2 = np.zeros((int((Ninp+2)*(Ninp+1)/2),Ninp+2))
+        for i, (j,k) in enumerate(combinations(range(Ninp+2),2)):
+            Zt2[i,j]=1
+            Zt2[i,k]=-1
+        Wit = np.linalg.inv(0.5 * Zt @ Zt.T)
+        Zdict[Ninp]=Zt
+        Widict[Ninp] = Wit
+        
+    # For Kalman Filter Precompute H function
+    Pinit_getter = pcrlb.CRBconverter()
+    
+    x, y, vx, vy, sx = sp.symbols('x y vx vy sx')
+
+    r = sp.sqrt((x-sx)**2+y**2)
+    d = ((x-sx)*vx+y*vy)/r
+    hk = [sp.lambdify([x,y,vx,vy,sx], r, "numpy"), sp.lambdify([x,y,vx,vy,sx], d, "numpy")]
+    varl = [x, y, vx, vy]
+    f =[[] for _ in range(2)] 
+    for v1 in range(4):
+        e = (r.diff(varl[v1]))
+        f[0].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
+    for v1 in range(4):
+        e = (d.diff(varl[v1]))
+        f[1].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
+        
     def __init__(self, r, d, sindx, g=[]):
         self.r =[r]
         self.d = [d]
@@ -124,36 +155,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         self.pid =[]# Obs order at sensor
         self.llr = 0 # Likelihood of observations
         self.gc = None # Geometric fitting error
-        # Precompute Constant matrices
-        self.Zdict =dict()
-        self.Widict =dict()
-        for Ninp in range(cfg.max_sensors): # Ninp in [2,Ns] NOTE: Should not be fixed
-            Z_mat = np.eye(Ninp+2)
-            Zt = Z_mat[0:-1,:]-Z_mat[1:,:] # consecutive
-            Zt2 = np.zeros((int((Ninp+2)*(Ninp+1)/2),Ninp+2))
-            for i, (j,k) in enumerate(combinations(range(Ninp+2),2)):
-                Zt2[i,j]=1
-                Zt2[i,k]=-1
-            Wit = np.linalg.inv(0.5 * Zt @ Zt.T)
-            self.Zdict[Ninp]=Zt
-            self.Widict[Ninp] = Wit
-            
-        # For Kalman Filter Precompute H function
-        self.Pinit_getter = pcrlb.CRBconverter()
         
-        x, y, vx, vy, sx = sp.symbols('x y vx vy sx')
-
-        r = sp.sqrt((x-sx)**2+y**2)
-        d = ((x-sx)*vx+y*vy)/r
-        self.hk = [sp.lambdify([x,y,vx,vy,sx], r, "numpy"), sp.lambdify([x,y,vx,vy,sx], d, "numpy")]
-        varl = [x, y, vx, vy]
-        self.f =[[] for _ in range(2)] 
-        for v1 in range(4):
-            e = (r.diff(varl[v1]))
-            self.f[0].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
-        for v1 in range(4):
-            e = (d.diff(varl[v1]))
-            self.f[1].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
     
     def get_Pinit(cls, sensors, target): # TODO: Get Pinit in principled manner
         xr,yr,vxr,vyr = target.state
@@ -538,12 +540,12 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         cls.sindx = np.append(cls.sindx, sindx)
         cls.N = cls.N+1
         curs = cls.state_head
-        norm_const = np.trace(curs.cov)
+        norm_const = np.diag(curs.cov)
         gc=[1]
         while curs is not None:
-            gc.append(np.trace(curs.cov)/norm_const)
+            gc.append(np.trace(curs.cov/norm_const)/2)
             curs = curs.next
-        cls.gc = np.diag(Pn)/norm_const*cls.N/2 # gc
+        cls.gc = gc # (np.diag(Pn)/norm_const)*cls.N/2 # gc
         
     def add_update2(cls, rs, ds, sindx, lij, lc):
         # adding path using Kalman Filter

@@ -20,18 +20,18 @@ max_sensors = 20 # Set based on script4 max value
 N_cpu = -1 # Set Num of parallel cores automatically
 
 # Scene simulation iterabes
-roba = 0*np.ones(Ninst) # Robustness level (Should be less than N_sens-1)
+roba = 1*np.ones(Ninst) # Robustness level (Should be less than N_sens-1)
 snra = -10*np.ones(Ninst)
 Nsensa = 4*np.ones(Ninst, dtype='int')
 Noba = 10*np.ones(Ninst, dtype='int')  # number of targets
-swidtha = 2*np.ones(Ninst, dtype='int') # Array width
+swidtha = 4*np.ones(Ninst, dtype='int') # Array width
 pmiss=0.05 # Miss probability
 # Iterable descriptors
 rng_used = Nsensa
 xlbl = 'Num sensors' #'SNR (dB)' # 'Num objects', 'Num sensors'
 # Scalars
 sep_th = 1 # Separation threshold
-pmiss=0 #Prob of missing target at sensors
+pmiss=0.05 #Prob of missing target at sensors
 rd_wt = [1,1] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 all_pht = True # All possible pht or only consecutive pairs
 static_snapshot = 1

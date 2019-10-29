@@ -13,7 +13,7 @@ from datetime import date
  
 def main():
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)+'/fig_')
-    cfg.Nf = 20 # was 50
+    cfg.Nf = 50
     
     rob_rng = [0,1,2]
     sep_th_rng = [0.5,0.9,1.1,1.5]

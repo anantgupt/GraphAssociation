@@ -403,6 +403,8 @@ def main():
     handle.write('Nsens={}\n'.format(cfg.Nsensa))
     handle.write('Noba={}\n'.format(np.round(Noba,2)))
     handle.write('Sensor Width={}\n'.format(cfg.swidtha))
+    mcss=sensors[0].mcs
+    handle.write('Sensor BW={}Hz,R_res={}m, D_res={}m/s \n'.format(mcss.B, 3e8/2/mcss.B, 3e8/2/mcss.fc/mcss.tf))
 
     handle.write('mode={}\n'.format(cfg.mode))
     handle.write('Tlen={}\n'.format(cfg.Tlen))
@@ -428,9 +430,8 @@ def resizefig(plt, x, y):
         
 if __name__ == "__main__":
     __spec__ = None
-    ipython = get_ipython()
-    ipython.magic('%load_ext autoreload')
-    ipython.magic('%autoreload 2')    
-    ipython.magic('%matplotlib')
-    
+#    ipython = get_ipython()
+#    ipython.magic('%load_ext autoreload')
+#    ipython.magic('%autoreload 2')    
+#    ipython.magic('%matplotlib')
     main()
