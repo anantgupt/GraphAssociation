@@ -8,6 +8,7 @@ import GAutils.master_simulator3 as ms3
 import GAutils.config as cfg
 import numpy as np
 from datetime import date, datetime
+import argparse
 
 def set_it(itrx, xval, idxa, val):
     it_name=['roba','snra','Nsensa','Noba','swidtha']
@@ -28,13 +29,19 @@ def run_it(datef, rng, itrx, itry):
    
         
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', default='Relax', help='Association algorithm: ')
+    parser.add_argument('--fu_alg', default='ls', help='Refinement algorithm: ')
+    parser.add_argument('--sep_th', default=0, help='Separation threshold: ')
+    args = parser.parse_args()
+
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
     cfg.Nf = 50 # was 50
     cfg.N_cpu = -1
     
-    cfg.fu_alg = 'ls'
-    cfg.mode = 'Relax'
+    cfg.fu_alg = args.fu_alg # 'ls'
+    cfg.mode = args.mode #'Relax'
     
     rob_rng = [0,1,2]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
@@ -43,7 +50,7 @@ def main():
     swidth_rng = [0.25,0.5,1,2,3,4,5,6,8]
     
     rob_std = 1
-    sep_th_std = 0
+    sep_th_std = args.sep_th
     snr_std = -10
     Nsens_std=4
     Nob_std=10
@@ -63,7 +70,7 @@ def main():
     run_it(datef, snr_rng2, 'Nob','snr')
     #################
     Nsens_std2 = 6
-    rob_rng2 = [0, 1, 2]
+    rob_rng2 = [0, 1, 2, 3]
     # # Rob vs Nob 
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
     run_it(datef, rob_rng2,'Nob','rob')
