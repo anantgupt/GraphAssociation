@@ -545,7 +545,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         while curs is not None:
             gc.append(np.trace(curs.cov/norm_const)/2)
             curs = curs.next
-        cls.gc = (np.diag(Pn)/norm_const)*cls.N/4 # gc
+        cls.gc = gc # (np.diag(Pn)/norm_const)*cls.N/2 # gc
         
     def add_update2(cls, rs, ds, sindx, lij, lc):
         # adding path using Kalman Filter
