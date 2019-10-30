@@ -234,11 +234,12 @@ def main():
     for i in range(3):
         plt.subplot(1,3,i+1)
         plt.errorbar(rng_used, np.mean(ospa_error1[:,:,i], axis=1), np.std(ospa_error1[:,:,i], axis=1), color='r')
-        plt.xlabel(cfg.xlbl),plt.ylabel('RMS Error (?)'),plt.title(capt3[i]),plt.grid(True)
-        if i<=1: 
+        plt.xlabel(cfg.xlbl),plt.title(capt3[i]),plt.grid(True)
+        if i<=1:
             plt.yscale('log'), plt.ylabel('RMS Error (?)')
         else:
             plt.ylabel('Error in Num targets')
+    
     fig = plt.gcf()
     fig.set_size_inches(9.6,4.8)
     plt.tight_layout()
@@ -327,9 +328,9 @@ def main():
     
     # plt.figure(7)
     fig, axs = plt.subplots(2, 2, num=7)# systemwide
-    tr_p = np.array([1 + np.clip(ospa_error1[j,:,2],None,0)/Nob for j,Nob in enumerate(Noba)])
-    fa_p = np.array([np.clip(ospa_error1[j,:,2],0,None)/Nob for j,Nob in enumerate(Noba)])
-    fa_n = np.array([-np.clip(ospa_error1[j,:,2],None,0)/Nob for j,Nob in enumerate(Noba)])
+    tr_p = np.array([ospa_error1[j,:,3]/Nob for j,Nob in enumerate(Noba)])
+    fa_p = np.array([(ospa_error1[j,:,2]+Nob-ospa_error1[j,:,3])/Nob for j,Nob in enumerate(Noba)])
+    fa_n = np.array([(Nob-ospa_error1[j,:,3])/Nob for j,Nob in enumerate(Noba)])
     precision_m = tr_p/(fa_p+tr_p)
     recall_m = tr_p/(tr_p+fa_n)
     axs[0,0].errorbar(rng_used, np.mean(tr_p,axis=1),np.std(tr_p,axis=1), label='P_D')

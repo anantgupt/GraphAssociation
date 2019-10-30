@@ -8,19 +8,19 @@ import GAutils
 import GAutils.master_simulator3 as ms3
 import GAutils.config as cfg
 import numpy as np
-from IPython import get_ipython
+#from IPython import get_ipython
 from datetime import date, datetime
  
 def main():
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)
             +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
-    cfg.Nf = 50 # was 50
+    cfg.Nf = 20 # was 50
     
     rob_rng = [0,1,2]
     sep_th_rng = [0.5,0.9,1.1,1.5]
-    snr_rng = [-15] #[-20,-15,-10,0,10]
+    snr_rng = [-20,-15,-10,0,10]
     Nsens_rng = [4,5,6,8,10]
-    Nob_rng = [1,2] #np.linspace(1,28,9, dtype='int') 
+    Nob_rng = np.linspace(1,28,9, dtype='int') 
     swidth_rng = [0.1,0.2,0.4,0.8,1.6,2.4,3.2,4,5]
     
     rob_std = 1 #0
@@ -65,9 +65,9 @@ def run_it(datef, rng, itrx, itry):
     
 if __name__ == "__main__":
     __spec__ = None
-    ipython = get_ipython()
-    ipython.magic('%load_ext autoreload')
-    ipython.magic('%autoreload 2')    
-    ipython.magic('%matplotlib')
-    
+#    ipython = get_ipython()
+#    ipython.magic('%load_ext autoreload')
+#    ipython.magic('%autoreload 2')    
+#    ipython.magic('%matplotlib')
+#    
     main()

@@ -74,7 +74,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-1
+snra = np.ones(Nf)*-15
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -111,9 +111,9 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 1
+cfgp['rob'] = 2
 cfgp['pmiss']=0.1
-cfgp['mode']='Relax' # SPEKF, Relax
+cfgp['mode']='Relax-heap' # SPEKF, Relax
 
 for f in range(Nf):  # Loop over frames
     targets_list = []
@@ -200,13 +200,14 @@ for f in range(Nf):  # Loop over frames
         min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
         print('Max-Flow Association took {}s'.format(time.time()-t))
     #%% MCF Association
-    cfgp['mode']='SPEKF' # SPEKF, Relax
+    cfgp['mode']='SPEKF-heap' # SPEKF, Relax
     from GAutils import mcft as mcft
     t=time.time()
-#    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
+    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
 #    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
-    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
-    print('Min cost-Flow Association took {}, {}s'.format(rtime_assoc3, time.time()-t))
+#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
+    print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc3, time.time()-t))
+    pr.plot_graph(G1, min_gsigs3, sensors, rd_wt, 79, plt, garda_sel) # From Relax
     #%%
     
     for sig in min_gsigs1:
@@ -218,9 +219,9 @@ for f in range(Nf):  # Loop over frames
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
     pr.plot_scene(plt, scene, sensors, 76, 'GA-DFS detects {} targets'.format(len(min_gsigs1)))
-#    for sig in min_gsigs3:
-#        [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
-#        sig.state_end.mean = new_pos
+    for sig in min_gsigs3:
+        [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
+        sig.state_end.mean = new_pos
     plt.figure(75)
     for gtr in min_gsigs3:
         dob = gtr.state_end.mean
