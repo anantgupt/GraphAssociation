@@ -65,9 +65,9 @@ def run_it(datef, rng, itrx, itry):
     
 if __name__ == "__main__":
     __spec__ = None
-    ipython = get_ipython()
-    ipython.magic('%load_ext autoreload')
-    ipython.magic('%autoreload 2')    
-    ipython.magic('%matplotlib')
+    # ipython = get_ipython()
+    # ipython.magic('%load_ext autoreload')
+    # ipython.magic('%autoreload 2')    
+    # ipython.magic('%matplotlib')
     
     main()
