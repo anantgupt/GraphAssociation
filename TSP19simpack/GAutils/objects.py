@@ -127,21 +127,25 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         Zdict[Ninp]=Zt
         Widict[Ninp] = Wit
         
-    # For Kalman Filter Precompute H function
+    # For Extended Kalman Filter Initial covariance 
     Pinit_getter = pcrlb.CRBconverter()
     
-    x, y, vx, vy, sx = sp.symbols('x y vx vy sx')
+    x, y, vx, vy, sx, rm, dm, sr, sd = sp.symbols('x y vx vy sx rm dm sr sd')
 
     r = sp.sqrt((x-sx)**2+y**2)
     d = ((x-sx)*vx+y*vy)/r
-    hk = [sp.lambdify([x,y,vx,vy,sx], r, "numpy"), sp.lambdify([x,y,vx,vy,sx], d, "numpy")]
+    # For EKF time update
+    hk = [sp.lambdify([x,y,vx,vy,sx], r, "numpy"), sp.lambdify([x,y,vx,vy,sx], d, "numpy")] 
+    # To Precompute H Matrix
     varl = [x, y, vx, vy]
     f =[[] for _ in range(2)] 
     for v1 in range(4):
         e = (r.diff(varl[v1]))
+        # NOTE: Probe analytical expression for FIM element using e.expand()
         f[0].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
     for v1 in range(4):
         e = (d.diff(varl[v1]))
+        # NOTE: Probe analytical expression for FIM element using e.expand()
         f[1].append(sp.lambdify([x,y,vx,vy,sx], e, "numpy") )
         
     def __init__(self, r, d, sindx, g=[]):
@@ -167,9 +171,10 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             F_mat = np.zeros((4,4))
             for v1 in range(4):
                 for v2 in range(4):
-                    F_mat[v1,v2] = cls.Pinit_getter.f[v1][v2](xr, yr, vxr, vyr, cre, cde)
+                    F_mat[v1,v2] = cls.Pinit_getter.f[v1][v2](xr-sensor.x, yr, vxr, vyr, cre, cde)
             Am1[:,:] += F_mat
-        return 4*np.diag(([cre,cre,cde,cde]))
+        Ami = np.linalg.inv(Am1)
+        return Ami
         
     def get_newfit_error(cls, sensors, rnew, dnew, gnew, sidnew):
         # Reports geometry fitting error for given R,D pair
@@ -216,7 +221,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             if cls.N>2:
                 Pp = cls.state_end.cov
             else:
-                Pp = cls.get_Pinit([sensors[cls.sindx[0]], sensors[sindx]], PointTarget(*Stp)) 
+                Pp = cls.get_Pinit(sensors, PointTarget(*Stp)) 
             Hk = np.zeros((2,4))
             for i in range(2):
                 for j in range(4):
@@ -523,13 +528,20 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
             Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
         else: # Compute initial covariance
             trg = pr.get_pos_from_rd(rp[0], rs, dp[0], ds, sindxp[0], sindx, sensors)
-            Pn = cls.get_Pinit([sensors[sindxp[0]], sensors[sindx]], trg) 
+            Pn = cls.get_Pinit(sensors, trg) 
             Stn = np.array(trg.state) # NOTE: Can give some prior here
         # Update previous covariance
         new_state = State(Stn, Pn)
         if Np > 1:
             cls.state_end.next = new_state
             cls.state_end = new_state
+            curs = cls.state_head
+            norm_const = np.diag(curs.cov)
+            gc=[1]
+            while curs is not None:
+                gc.append(np.trace(curs.cov/norm_const)/2)
+                curs = curs.next
+            cls.gc = gc #(np.diag(Pn)/norm_const)*cls.N/2 # gc
         else:
             cls.state_head = new_state
             cls.state_end = new_state
@@ -539,13 +551,7 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
         cls.g = np.append(cls.g, gs)
         cls.sindx = np.append(cls.sindx, sindx)
         cls.N = cls.N+1
-        curs = cls.state_head
-        norm_const = np.diag(curs.cov)
-        gc=[1]
-        while curs is not None:
-            gc.append(np.trace(curs.cov/norm_const)/2)
-            curs = curs.next
-        cls.gc = gc # (np.diag(Pn)/norm_const)*cls.N/2 # gc
+        
         
     def add_update2(cls, rs, ds, sindx, lij, lc):
         # adding path using Kalman Filter

@@ -13,7 +13,7 @@ from GAutils import proc_est as pr
 from GAutils import ml_est as mle
 # import config as cfg
 from scipy.stats import chi2
-import heapq
+import heapq, collections
 
 def make_graph(garda, sensors, lskp=False, l2p=0):
     Ns=len(sensors)
@@ -321,8 +321,9 @@ def add_skipedge(G, sensors, lskp=0):# remove
                             sob_k.insert_flink(sobc)
     return G
         
-def remove_scc(G, sensors):# efficient in-place implementation
+def remove_scc(G, sensors, minP=2):# efficient in-place implementation
     flag = 0
+    Ns = len(sensors)
     for i, sobs in enumerate(G):# NOTE: Should delete node from G instead of creating new G
         oidn = 0
         del_ind = []
@@ -337,10 +338,10 @@ def remove_scc(G, sensors):# efficient in-place implementation
                 G[i][pid].oid = oidn # Update observation order
                 oidn +=1
         for did in reversed(del_ind):  G[i].pop(did)
-        if 0: # Disable early Exit
+        if 1: # Early Exit
             if len(G[i])==0: # Just stop here if need to save time
                 flag+=1
-                if flag>1: return G, True # Empty consecutive sensor
+                if flag>Ns-minP: return G, True # Empty sensors
             else: # Reset flag if obs found
                 flag = 0
     return G, False
@@ -391,7 +392,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
     G = cp.copy(Gfix)
     scale = cfgp['hscale']
     hN = cfgp['hN']
-    L3 = 0
+    L3, hc = 0, 0
     Ns = minP = len(sensors)
     hq = []
     lg_thres = np.array([[chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
@@ -399,33 +400,55 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
     lg_thres[0,0]=-np.inf
     for i in range(2):
         lg_thres[1][i]=-np.inf
-    for h in range(cfgp['rob']+1): # was Ns - cfgp['Tlen']+1, range(hN)
-#        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
-#        lg_thres = np.array([[scale[0]*chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
-#                    [scale[1]*chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
+    while hc<hN and minP>1:
+#        print(lg_thres)
+        for h in range(cfgp['rob']+1): # was Ns - cfgp['Tlen']+1, range(hN)
+    #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
+    #        lg_thres = np.array([[scale[0]*chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
+    #                    [scale[1]*chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
+            
+            for i in range(Ns-minP+1):
+                sobs = G[i]
+                for pid, sobc in enumerate(sobs):
+        #            print(G[ind].val)
+                    sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
+                    L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
+            G, stopping_cr = remove_scc(G, sensors, minP)# Add skip connection
+            glen.append(sum(len(g) for g in G))
+            if stopping_cr:# Until path of length minP left in Graph
+#                print('Graph Empty',[len(g) for g in G])
+                break
+            scale = scale*cfgp['incr']
+            if 1: # Reduce minP inner loop
+                minP-=1
+                G = add_skipedge(G, sensors, Ns-minP)# Only to be called when minP decrements
+                hc+=1
+        if stopping_cr or cfgp['mode'][-4:]=='heap': break # Only 1 iter for heap mode
+        lg_thres=[lgt*sc for (lgt,sc) in zip(lg_thres, scale)] # Relax LLR thres outer loop
         
-        for i in range(Ns-minP+1):
-            sobs = G[i]
-            for pid, sobc in enumerate(sobs):
-    #            print(G[ind].val)
-                sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
-                L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
-        G, stopping_cr = remove_scc(G, sensors)# Add skip connection
-        glen.append(sum(len(g) for g in G))
-        if stopping_cr:# Until path of length minP left in Graph
-            print('Graph Empty',[len(g) for g in G])
-            break
-        scale = scale*cfgp['incr']
-        if 1: # glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']: # Might wanna use the heap here for speed.
-            minP-=1
-            G = add_skipedge(G, sensors, Ns-minP)# Only to be called when minP decrements
+    # Using heap to get leftover targets
+    if cfgp['mode'][-4:]=='heap':
+        # Make dict of remaining nodes keyed by sensor id, r, d
+        leftover = {} # collections.defaultdict(int)
+        for i, g in enumerate(G):
+#            print([(nd.oid, ndi) for ndi, nd in enumerate(g) if not nd.visited])# DEBUG
+            for ndi, nd in enumerate(g):
+                if not nd.visited:
+                    leftover[(i,nd.r, nd.d)] = nd.oid
+        for q in hq:
+            pidt = [leftover[(si,ri, di)] for (si, ri, di) in zip(q[4].sindx,q[4].r, q[4].d) if (si, ri, di) in leftover]
+            if len(pidt) == q[4].N:
+    #            print(q[3],q[4].r, path_check(G, q[4],pidt)) # DEBUG
+                if path_check(G, q[4],pidt):
+                    sel_sigs.append(q[4])
+                    for (si,pi) in zip(q[4].sindx,pidt):# Mark new ones as visited
+                        G[si][pi].visited = True
+                        G[si][pi].used = len(sel_sigs)-1
     return glen, L3
 
 def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,False,False]): # code cleanup
     if sig==None:
         return 0
-    # cand_sig =[]
-    llr_min = np.inf
     L3 = 0 # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     if not nd.visited:# Check if tracks could be joined
@@ -443,30 +466,43 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                     ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 if ndc_sig.N>2:
                     l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
-                    if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
-                        continue
+                    if cfgp['mode'][-4:]!='heap': # For heap mode don't stop early
+                        if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
+                            continue
                 L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, lg_thres, opt)
 
 
         if not nd.visited:# check for min cost(if node not used)
             if path_check(G, sig, pid): # Check that no member of chain is already visited
-                if sig.N>=minP-1 and sig.gc is not None: # Atleast 3 elements
-                    l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
-                    L3+=0 # If ONLY Counting paths, make 1, ELSE 0
-#                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
-                    deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
-                    if sig.N>=minP and l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB
-                        sig.llr = l_cost
-                        sig.pid = pid
-                        sel_sigs.append(sig)
-                        update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
-#                        print(sig.state_end.mean)
-                    elif sig.N>=minP-1: # NOTE this can be moved to outer If cond (minP) also!!
-                        try:
-                            Ns = len(sensors)
-                            heapq.heappush(hq, [2*(Ns-sig.N)+l_cost, abs(sum(sig.gc)), np.random.randn(), sig])
-                        except Exception as e:
-                            print(e, end=' ')
+                if cfgp['mode'][-4:]!='heap':
+                    if sig.N>=minP and sig.gc is not None: # Atleast 3 elements
+                        l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
+                        L3+=0 # If ONLY Counting paths, make 1, ELSE 0
+    #                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
+                        deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
+                        if l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB
+                            sig.llr = l_cost
+                            sig.pid = pid
+                            sel_sigs.append(sig)
+                            update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
+                else: # For Heap mode
+                    if sig.N>=minP-1 and sig.gc is not None: # Atleast 3 elements
+                        l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
+                        L3+=0 # If ONLY Counting paths, make 1, ELSE 0
+    #                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
+                        deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
+                        if sig.N>=minP and l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB
+                            sig.llr = l_cost
+                            sig.pid = pid
+                            sel_sigs.append(sig)
+                            update_G(G, sig.sindx, pid, True, len(sel_sigs)-1)# Stores id of sig in sel_sigs
+                        elif sig.N>=minP-1:
+                            try:
+                                Ns = len(sensors)
+                                sig.pid = pid
+                                heapq.heappush(hq, [2*(Ns-sig.N)+l_cost, sig.N, abs(sum(sig.gc)), sig.state_end.mean, sig])
+                            except Exception as e:
+                                print(e, end=' ')
 
     return L3
 
@@ -664,8 +700,8 @@ def get_minpaths(G, sensors, mode, cfgp):
             if sig!=None:
                 sig_new.append(sig)
         sel_sigs= sig_new
-    if mode=='Relax' or mode=='SPEKF':#Run with relaxed params
-        glen, L3 = dispatcher[mode](G, sel_sigs, sensors, glen, cfgp)
+    if mode[:5]=='Relax' or mode[:5]=='SPEKF':#Run with relaxed params
+        glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode=='Brute_iter':#Run with relaxed params
         glen, L3 = dispatcher[mode](G, sel_sigs, sensors, glen, cfgp)
 
