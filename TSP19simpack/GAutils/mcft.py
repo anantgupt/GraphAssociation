@@ -7,7 +7,7 @@ based on mcftracker(CVPR2008 paper) https://github.com/watanika/py-mcftracker
 @author: anantgupta
 """
 
-import math
+import math, collections
 from ortools.graph import pywrapgraph
 import sys, time
 
@@ -237,16 +237,19 @@ def get_mcfsigs(garda, sensors):
 	sigs = []
 	if optimal_flow>0:
 		for st in tracker.flow_dict['source']:
-			sid = int(st[0][-1])-1
+			sid = int(st[0][6:])-1
 			pid = st[1]
+			pida = [st[1]]
 			new_sig = ob.SignatureTracks(garda[sid].r[pid], garda[sid].d[pid], sid, garda[sid].g[pid])
 			newt = list(tracker.flow_dict[list(tracker.flow_dict[st])[0]])[0]#Assuming only single link henceforth NOTE: This could handle more scenarios
 			while newt!='sink':
-				sid = int(newt[0][-1])-1
+				sid = int(newt[0][6:])-1
 				pid = newt[1]
+				pida.append(pid)
 				new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 				newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
 			if new_sig.N>1:
+				new_sig.pid = pida
 				sigs.append(new_sig)
 	if not sigs:
 		for sid, sensor in enumerate(sensors):
@@ -279,8 +282,12 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	sigs = []
 	# Let's track them!
 	start = time.time()
-
+	garda_old = garda
 	for h in range(cfgp['rob']+1): #was Ns - cfgp['Tlen']+1
+		if 'tracker' in locals():
+			del tracker, garda
+			garda = garda_new
+			detections , tags , images = tools.create_tags(garda, sensors)
 		tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)
 		tracker.build_network(garda, sensors, h)
 		optimal_flow, optimal_cost = tracker.run(fib=fib_search, search_range=len(sensors))
@@ -295,19 +302,23 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 		
 		if optimal_flow>0:
 			for st in tracker.flow_dict['source']:
-				sid = int(st[0][-1])-1
+				sid = int(st[0][6:])-1
 				pid = st[1]
+				pida = [st[1]]
 				new_sig = ob.SignatureTracks(garda[sid].r[pid], garda[sid].d[pid], sid, garda[sid].g[pid])
 				newt = list(tracker.flow_dict[list(tracker.flow_dict[st])[0]])[0]#Assuming only single link henceforth NOTE: This could handle more scenarios
 				while newt!='sink':
-					sid = int(newt[0][-1])-1
+					sid = int(newt[0][6:])-1
 					pid = newt[1]
+					pida.append(pid)
 					new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 					newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
 				if new_sig.N>=Ns-h:
+					new_sig.pid = pida
 					sigs.append(new_sig)
-		if sigs: # Update detections (Pruning)
-			detections , tags , images = tools.create_tags_filt(garda, sensors, sigs)
+		if len(sigs)>0: # Update detections (Pruning)
+			# detections , tags , images = tools.create_tags_filt(garda, sensors, sigs)
+			garda_new = reduce_gard(garda, sensors, sigs)
 		glen.append(sum([len(g) for g in tags]))
 	# If nothing found
 	if not sigs:
@@ -323,3 +334,23 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	
 	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	return sigs, glen, L3
+
+def reduce_gard(garda, sensors, sigs):
+	# Creates graph from all obs in garda excluding those used in sigs
+	oid_seen = collections.defaultdict(list)
+	for sig in sigs:
+		for sid,pid in zip(sig.sindx, sig.pid):
+#			if sid not in oid_seen:
+#				oid_seen[sid] = [pid]
+#			else:
+			oid_seen[sid].append(pid)
+	new_garda=[]
+	for si, gard in enumerate(garda):
+		gard_new = ob.gardEst()
+		L=len(gard.g)
+		for oid in range(L):
+			if oid not in oid_seen[si]:
+				gard_new.add_Est(gard.g[oid], 0,gard.r[oid], gard.d[oid])# NOTE: Try replacing rect[4] with gard.g[oid]
+		new_garda.append(gard_new)
+
+	return new_garda

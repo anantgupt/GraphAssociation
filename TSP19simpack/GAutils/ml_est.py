@@ -194,18 +194,21 @@ def est_llr_joint(template, sensors, obs, w=[1,0]): # Use range if dop. unknown
 def est_prob_joint(template, sensors, obs, w=[1,0]): # Link prob cond. over obs. across all sens
     pre = 0
     eps = 1e-7
+    den = 0
     for s, (sensor, gard_obs) in enumerate(zip(sensors, obs)):
-        gard = pr.get_gard_true(sensor, template) #gard template
-        dR = gard_obs.r- gard.r # Array of est range delta
-        dD = gard_obs.d- gard.d
-        ga = gard_obs.g # Array of est gains
-        
-        ind = np.argmin(abs(dR)) # Finds closest point
-        crb = np.sqrt(sensor.getnominalCRB())*10# /(abs(ga[ind])**2))
-        prob = norm.pdf(w[0]*dR/crb[0]) * norm.pdf(w[1]*dD/crb[1])
-#        Bhattacharya distance type prob
-        pre += prob[ind]/(eps+sum(prob))
-    return pre/len(sensors)
+        if len(gard_obs.r)>0:
+            gard = pr.get_gard_true(sensor, template) #gard template
+            dR = gard_obs.r- gard.r # Array of est range delta
+            dD = gard_obs.d- gard.d
+            ga = gard_obs.g # Array of est gains
+            
+            ind = np.argmin(abs(dR)) # Finds closest point
+            crb = np.sqrt(sensor.getnominalCRB())*10# /(abs(ga[ind])**2))
+            prob = norm.pdf(w[0]*dR/crb[0]) * norm.pdf(w[1]*dD/crb[1])
+    #        Bhattacharya distance type prob
+            pre += prob[ind]/(eps+sum(prob))
+            den+=1
+    return pre/den
 
 def dirichlet(N, d):# Normalized correkation. N scalar, d:array
     return special.diric(d, N-1)* np.exp(1j*d*(N-1)/2) # * np.exp(1j*d*(N-1)/2) 

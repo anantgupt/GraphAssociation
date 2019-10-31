@@ -96,7 +96,7 @@ def create_tags_filt(garda, sensors, sigs):
 #			if sid not in oid_seen:
 #				oid_seen[sid] = [pid]
 #			else:
-			oid_seen[sid]+=pid
+			oid_seen[sid].append(pid)
 	detections={}
 	images={}
 	tags = {}

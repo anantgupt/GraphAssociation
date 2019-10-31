@@ -75,7 +75,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     rd_wt = cfgp['rd_wt'] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 
      #%% Graph Algo
-    G1,runtime[4] = grpr.make_graph(garda_sel, sensors, cfgp['rob'])
+    G1,runtime[4] = grpr.make_graph(garda_sel, sensors, 0) # was cfgp['rob']
 #        runtime[4] = sum([grpr.get_Ntracks(nd) for nd in G1[0]])# All tracks in graph
     runtime[4] = sum([len(nd.lkf) for g in G1 for nd in g]) # No of edges, get V from glen
     runtime[5],_ = grpr.get_BruteComplexity(G1)
