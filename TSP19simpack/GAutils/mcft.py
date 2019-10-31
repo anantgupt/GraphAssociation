@@ -86,7 +86,7 @@ class MinCostFlowTracker:
 	def build_network(self, garda, sensors, h=0, f2i_factor=10000):
 		self.mcf = pywrapgraph.SimpleMinCostFlow()
 		tol = 0.01
-		for image_name, rects in sorted(self._detections.items()):
+		for image_name, rects in sorted(self._detections.items(), key=lambda x: int(x[0][6:])):
 			for i, rect in enumerate(rects):
 				self.mcf.AddArcWithCapacityAndUnitCost(self._node2id["source"], self._node2id[(image_name, i, "u")], 1, int(self._calc_cost_enter() * f2i_factor))
 				self.mcf.AddArcWithCapacityAndUnitCost(self._node2id[(image_name, i, "u")], self._node2id[(image_name, i, "v")], 1, int(self._calc_cost_detection(rect[4]) * f2i_factor))
@@ -220,7 +220,7 @@ def get_mcfsigs(garda, sensors):
 	P_exit = 0.1
 	beta = 0.5
 	fib_search = True
-
+	glen = [sum([len(gard.r) for gard in garda])]
 	# Let's track them!
 	start = time.time()
 	tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)
@@ -261,7 +261,7 @@ def get_mcfsigs(garda, sensors):
 		print('.',end='')
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
-	glen = []
+	glen.append(glen[0]-sum(sg.N for sg in sigs))
 	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	return sigs, glen, L3
 
@@ -277,16 +277,16 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	P_exit = 0.1
 	beta = 0.5
 	fib_search = True
-	glen = [sum([len(gard.r) for gard in garda])]
+	glen = []
 	Ns = minP = len(sensors)
 	sigs = []
+	L3 = 0
 	# Let's track them!
 	start = time.time()
 	garda_old = garda
 	for h in range(cfgp['rob']+1): #was Ns - cfgp['Tlen']+1
 		if 'tracker' in locals():
-			del tracker, garda
-			garda = garda_new
+			del tracker
 			detections , tags , images = tools.create_tags(garda, sensors)
 		tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)
 		tracker.build_network(garda, sensors, h)
@@ -313,13 +313,17 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 					pida.append(pid)
 					new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 					newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
+#				print(new_sig.N, Ns-h, new_sig.state_end.mean, new_sig.r) # DEBUG
 				if new_sig.N>=Ns-h:
 					new_sig.pid = pida
 					sigs.append(new_sig)
 		if len(sigs)>0: # Update detections (Pruning)
 			# detections , tags , images = tools.create_tags_filt(garda, sensors, sigs)
-			garda_new = reduce_gard(garda, sensors, sigs)
-		glen.append(sum([len(g) for g in tags]))
+			garda = reduce_gard(garda, sensors, sigs) # Update observations
+		V=tracker.mcf.NumNodes()
+		E=tracker.mcf.NumArcs()
+		glen.append(V/2-1)
+		L3 += int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	# If nothing found
 	if not sigs:
 		for sid, sensor in enumerate(sensors):
@@ -339,18 +343,18 @@ def reduce_gard(garda, sensors, sigs):
 	# Creates graph from all obs in garda excluding those used in sigs
 	oid_seen = collections.defaultdict(list)
 	for sig in sigs:
-		for sid,pid in zip(sig.sindx, sig.pid):
+		for sid,r,d,g in zip(sig.sindx, sig.r, sig.d, sig.g):
 #			if sid not in oid_seen:
 #				oid_seen[sid] = [pid]
 #			else:
-			oid_seen[sid].append(pid)
+			oid_seen[sid].append((r,d,g))
 	new_garda=[]
 	for si, gard in enumerate(garda):
 		gard_new = ob.gardEst()
 		L=len(gard.g)
-		for oid in range(L):
-			if oid not in oid_seen[si]:
-				gard_new.add_Est(gard.g[oid], 0,gard.r[oid], gard.d[oid])# NOTE: Try replacing rect[4] with gard.g[oid]
+		for ri,di,gi in zip(gard.r, gard.d, gard.g):
+			if (ri,di,gi) not in oid_seen[si]:
+				gard_new.add_Est(gi, 0, ri, di)# NOTE: Try replacing rect[4] with gard.g[oid]
 		new_garda.append(gard_new)
 
 	return new_garda

@@ -27,7 +27,7 @@ def map_node2id(detections):
 	node2id["sink"] = 1
 
 	nextid = 2
-	for image_name, rects in sorted(detections.items()):
+	for image_name, rects in sorted(detections.items(), key=lambda x: int(x[0][6:])):
 		for i, rect in enumerate(rects):
 			node2id[(image_name, i, "u")] = nextid
 			node2id[(image_name, i, "v")] = nextid + 1
@@ -41,7 +41,7 @@ def map_id2node(detections):
 	id2node[1] = "sink"
 
 	nextid = 2
-	for image_name, rects in sorted(detections.items()):
+	for image_name, rects in sorted(detections.items(), key=lambda x: int(x[0][6:])):
 		for i, rect in enumerate(rects):
 			id2node[nextid] = (image_name, i, "u")
 			id2node[nextid + 1] = (image_name, i, "v")
@@ -51,14 +51,14 @@ def map_id2node(detections):
 
 def map_name2id(tags):
 	name2id = {}
-	for frame_id, (image_name, rects) in enumerate(sorted(tags.items())):
+	for frame_id, (image_name, rects) in enumerate(sorted(tags.items(), key=lambda x: int(x[0][6:]))):
 		name2id[image_name] = frame_id
 	return name2id
 
 
 def map_id2name(tags):
 	id2name = {}
-	for frame_id, (image_name, rects) in enumerate(sorted(tags.items())):
+	for frame_id, (image_name, rects) in enumerate(sorted(tags.items(), key=lambda x: int(x[0][6:]))):
 		id2name[frame_id] = image_name
 	return id2name
 

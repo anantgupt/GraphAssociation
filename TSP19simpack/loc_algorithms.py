@@ -59,7 +59,7 @@ signal_mag =1 # NOTE: Set this carefully
 #sensors.append(ob.Sensor(1, 0))
 #sensors.append(ob.Sensor(3, 0))
 #sensors.append(ob.Sensor(5, 0))
-sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,9)]
+sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,12)]
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
@@ -112,7 +112,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 3
+cfgp['rob'] = 2
 cfgp['pmiss']=0.15
 cfgp['mode']='Relax' # SPEKF, Relax
 
@@ -201,7 +201,8 @@ for f in range(Nf):  # Loop over frames
         min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
         print('Max-Flow Association took {}s'.format(time.time()-t))
     #%% MCF Association
-    cfgp['mode']='mcf' # SPEKF, Relax
+    cfgp['rob'] = 2
+    cfgp['mode']='mcf_all' # SPEKF, Relax
     from GAutils import mcft as mcft
     t=time.time()
 #    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
@@ -219,7 +220,7 @@ for f in range(Nf):  # Loop over frames
     for gtr in min_gsigs1:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
-        print(dob, gtr.r)
+#        print(dob, gtr.r)
     pr.plot_scene(plt, scene, sensors, 76, 'GA-DFS detects {} targets'.format(len(min_gsigs1)))
     for sig in min_gsigs3:
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
@@ -230,7 +231,7 @@ for f in range(Nf):  # Loop over frames
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
         print(dob, gtr.r)
     pr.plot_scene(plt, scene, sensors, 75, 'Min cost Flow detects {} targets'.format(len(min_gsigs3)))
-    
+    #%%
     break # Stop here (Older code ahead)
     
     #########################
