@@ -33,12 +33,15 @@ def main():
     parser.add_argument('--mode', default='Relax', help='Association algorithm: ')
     parser.add_argument('--fu_alg', default='ls', help='Refinement algorithm: ')
     parser.add_argument('--sep_th', default=0, help='Separation threshold: ')
+    parser.add_argument('--rob', default=1, help='Separation threshold: ')
+    parser.add_argument('--N_cpu', default=-1, help='Separation threshold: ')
+
     args = parser.parse_args()
 
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)
         +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
     cfg.Nf = 50 # was 50
-    cfg.N_cpu = -1
+    cfg.N_cpu = args.N_cpu
     
     cfg.fu_alg = args.fu_alg # 'ls'
     cfg.mode = args.mode #'Relax'
@@ -49,7 +52,7 @@ def main():
     Nob_rng = np.linspace(1,31,16, dtype='int') 
     swidth_rng = [0.25,0.5,1,2,3,4,5,6,8]
     
-    rob_std = 1
+    rob_std = args.rob
     sep_th_std = args.sep_th
     snr_std = -10
     Nsens_std=4
