@@ -421,6 +421,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
             scale = scale*cfgp['incr']
             if 1: # Reduce minP inner loop
                 minP-=1
+                if minP<2: break
                 G = add_skipedge(G, sensors, Ns-minP)# Only to be called when minP decrements
                 hc+=1
         if stopping_cr or cfgp['mode'][-4:]=='heap': break # Only 1 iter for heap mode

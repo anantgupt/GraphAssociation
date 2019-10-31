@@ -52,18 +52,19 @@ scene_init.append(ob.PointTarget(1, 2, -5, -2, 0.1, 1))
 scene = scene_init
 signal_mag =1 # NOTE: Set this carefully
 #    targets[0]=[PointTarget(x,y,1) for x,y in np.random(2,Nob)*10]
-sensors = []
+#sensors = []
 #sensors.append(ob.Sensor(-5, 0))
-sensors.append(ob.Sensor(-3, 0))
-sensors.append(ob.Sensor(-1, 0))
-sensors.append(ob.Sensor(1, 0))
-sensors.append(ob.Sensor(3, 0))
+#sensors.append(ob.Sensor(-3, 0))
+#sensors.append(ob.Sensor(-1, 0))
+#sensors.append(ob.Sensor(1, 0))
+#sensors.append(ob.Sensor(3, 0))
 #sensors.append(ob.Sensor(5, 0))
+sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,12)]
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [9] #cfg.Noba
+Noba = [10] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -74,7 +75,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-15
+snra = np.ones(Nf)*-10
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -111,9 +112,9 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 2
-cfgp['pmiss']=0.1
-cfgp['mode']='Relax-heap' # SPEKF, Relax
+cfgp['rob'] = 1
+cfgp['pmiss']=0.05
+cfgp['mode']='mcf' # SPEKF, Relax
 
 for f in range(Nf):  # Loop over frames
     targets_list = []
@@ -200,7 +201,7 @@ for f in range(Nf):  # Loop over frames
         min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
         print('Max-Flow Association took {}s'.format(time.time()-t))
     #%% MCF Association
-    cfgp['mode']='SPEKF-heap' # SPEKF, Relax
+    cfgp['mode']='SPEKF' # SPEKF, Relax
     from GAutils import mcft as mcft
     t=time.time()
     min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
