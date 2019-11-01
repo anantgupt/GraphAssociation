@@ -64,7 +64,7 @@ sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,12)]
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [10] #cfg.Noba
+Noba = [5] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
