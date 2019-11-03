@@ -394,13 +394,14 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
     hN = cfgp['hN']
     L3, hc = 0, 0
     Ns = minP = len(sensors)
+    min_chain_leng = max(Ns - cfgp['rob'],2)
     hq = []
     lg_thres = np.array([[chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
                     [chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
     lg_thres[0,0]=-np.inf
     for i in range(2):
         lg_thres[1][i]=-np.inf
-    while hc<hN and minP>1:
+    while hc<hN and minP>=min_chain_leng:
 #        print(lg_thres)
         for h in range(cfgp['rob']+1): # was Ns - cfgp['Tlen']+1, range(hN)
     #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
@@ -418,10 +419,9 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
             if stopping_cr:# Until path of length minP left in Graph
 #                print('Graph Empty',[len(g) for g in G])
                 break
-            scale = scale*cfgp['incr']
             if 1: # Reduce minP inner loop
                 minP-=1
-                if minP<2: break
+                if minP<min_chain_leng: break
                 G = add_skipedge(G, sensors, Ns-minP)# Only to be called when minP decrements
                 hc+=1
         if stopping_cr or cfgp['mode'][-4:]=='heap': break # Only 1 iter for heap mode
@@ -440,7 +440,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
             pidt = [leftover[(si,ri, di)] for (si, ri, di) in zip(q[4].sindx,q[4].r, q[4].d) if (si, ri, di) in leftover]
             if len(pidt) == q[4].N:
     #            print(q[3],q[4].r, path_check(G, q[4],pidt)) # DEBUG
-                if path_check(G, q[4],pidt):
+                if path_check(G, q[4],pidt) and q[4].N>=min_chain_leng:
                     sel_sigs.append(q[4])
                     for (si,pi) in zip(q[4].sindx,pidt):# Mark new ones as visited
                         G[si][pi].visited = True

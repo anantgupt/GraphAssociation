@@ -33,20 +33,21 @@ def main():
     parser.add_argument('--mode', default='Relax',type=str, help='Association algorithm: ')
     parser.add_argument('--fu_alg', default='ls',type=str, help='Refinement algorithm: ')
     parser.add_argument('--sep_th', default=0, type=float, help='Separation threshold: ')
-    parser.add_argument('--rob', default=1, type=int, help='Separation threshold: ')
+    parser.add_argument('--rob', default=20, type=int, help='Separation threshold: ')
     parser.add_argument('--N_cpu', default=-1, type=int, help='Separation threshold: ')
+    parser.add_argument('--N_avg', default=50, type=int, help='Separation threshold: ')
 
     args = parser.parse_args()
 
     datef =('results'+str(date.today().month)+'_'+str(date.today().day)
-        +'_'+str(datetime.now().hour)+str(datetime.now().minute)+'/fig_')
-    cfg.Nf = 50 # was 50
+        +'_'+str(datetime.now().hour)+str(datetime.now().minute)+str(np.random.randint(100))+'/fig_')
+    cfg.Nf = args.N_avg # was 50
     cfg.N_cpu = (args.N_cpu)
     
     cfg.fu_alg = args.fu_alg # 'ls'
     cfg.mode = args.mode #'Relax'
     
-    rob_rng = [0,1,2]
+    rob_rng = [0,1,2, 20]
     snr_rng = np.hstack((np.linspace(-26,-22,3),np.linspace(-20,-10,11, dtype='int'),np.linspace(-8,10,10))) 
     Nsens_rng = [4,5,6,8,10,12]
     Nob_rng = np.linspace(1,31,16, dtype='int') 
@@ -73,7 +74,7 @@ def main():
     run_it(datef, snr_rng2, 'Nob','snr')
     #################
     Nsens_std2 = 6
-    rob_rng2 = [0, 1, 2, 3]
+    rob_rng2 = [0, 1, 2, 20]
     # # Rob vs Nob 
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
     run_it(datef, rob_rng2,'Nob','rob')
@@ -94,13 +95,19 @@ def main():
     set_it(4, swidth_rng, [1,3,2],[snr_std, Nob_std, Nsens_std2])
     run_it(datef, np.arange(0,Nsens_std2-1),'swidth','rob')
     ################
-    Nsens_rng2 = np.array([5,6,7,8,9,10, 12])
+    Nsens_rng2 = np.array([4,5,6,7,8,9,10, 12])
     # Rob vS Nsens
     set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
-    run_it(datef, np.arange(0,np.min(Nsens_rng)-1),'Nsens','rob')
-
+    run_it(datef, np.arange(0,6),'Nsens','rob')
     ################
-    rob_rng2 = [0, 1, 2]
+    Nsens_rng2 = [4,8, 12]
+    # Nsens vS swidth
+    set_it(4, swidth_rng, [0,1,3],[rob_std, snr_std, Nob_std])
+    run_it(datef, Nsens_rng2,'swidth','Nsens')
+    
+    ################
+    ################
+    rob_rng2 = [0, 1, 2, 100]
     cfg.estalgo = 1
     # DFT vS Nob
     set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])

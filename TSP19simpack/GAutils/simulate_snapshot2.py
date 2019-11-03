@@ -81,7 +81,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     runtime[5],_ = grpr.get_BruteComplexity(G1)
 
     if cfgp['mode']=='mcf':
-        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs(garda_sel, sensors)
+        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
     elif cfgp['mode']=='mcf_all':
         min_gsigs, glen, runtime[6] = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
     else:

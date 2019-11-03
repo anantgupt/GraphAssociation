@@ -209,7 +209,7 @@ class MinCostFlowTracker:
 			return self._brute_force(search_range)
 
 	# EXtract using 1 iteration ignoring flow length
-def get_mcfsigs(garda, sensors):
+def get_mcfsigs(garda, sensors, cfgp):
 	# Prepare initial detecton results, ground truth, and images
 	# You need to change below
 	detections , tags , images = tools.create_tags(garda, sensors)
@@ -248,7 +248,7 @@ def get_mcfsigs(garda, sensors):
 				pida.append(pid)
 				new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 				newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
-			if new_sig.N>1:
+			if new_sig.N>=max(2,Ns-cfgp['rob']):
 				new_sig.pid = pida
 				sigs.append(new_sig)
 	if not sigs:
@@ -281,10 +281,11 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	Ns = minP = len(sensors)
 	sigs = []
 	L3 = 0
+	min_chain_leng = max(Ns - cfgp['rob'],2)
 	# Let's track them!
 	start = time.time()
 	garda_old = garda
-	for h in range(cfgp['rob']+1): #was Ns - cfgp['Tlen']+1
+	for h in range(Ns - min_chain_leng+1): #was Ns - min_chain_leng+1
 		if 'tracker' in locals():
 			del tracker
 			detections , tags , images = tools.create_tags(garda, sensors)
@@ -314,7 +315,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 					new_sig.add_update3(garda[sid].r[pid], garda[sid].d[pid], garda[sid].g[pid], sid, sensors)
 					newt = list(tracker.flow_dict[list(tracker.flow_dict[newt])[0]])[0]
 #				print(new_sig.N, Ns-h, new_sig.state_end.mean, new_sig.r) # DEBUG
-				if new_sig.N>=Ns-h:
+				if new_sig.N>=max(Ns-h,2):
 					new_sig.pid = pida
 					sigs.append(new_sig)
 		if len(sigs)>0: # Update detections (Pruning)
