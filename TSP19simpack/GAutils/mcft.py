@@ -221,6 +221,7 @@ def get_mcfsigs(garda, sensors, cfgp):
 	beta = 0.5
 	fib_search = True
 	glen = [sum([len(gard.r) for gard in garda])]
+	Ns = len(sensors)
 	# Let's track them!
 	start = time.time()
 	tracker = MinCostFlowTracker(detections, tags, min_thresh, P_enter, P_exit, beta)

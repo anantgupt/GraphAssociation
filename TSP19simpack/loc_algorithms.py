@@ -206,7 +206,7 @@ for f in range(Nf):  # Loop over frames
     from GAutils import mcft as mcft
     t=time.time()
 #    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
-    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors)
+    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
 #    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
     print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc3, time.time()-t))
     pr.plot_graph(G1, min_gsigs3, sensors, rd_wt, 79, plt, garda_sel) # From Relax
