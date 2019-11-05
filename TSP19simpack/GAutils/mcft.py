@@ -338,7 +338,6 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	
-	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	return sigs, glen, L3
 
 def reduce_gard(garda, sensors, sigs):
