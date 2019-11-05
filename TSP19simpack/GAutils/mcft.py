@@ -81,7 +81,7 @@ class MinCostFlowTracker:
 			return 1e7
 		prob_joint = mle.est_prob_joint(trg, sensors, garda, cfg.rd_wt)
 #		print(prob_joint)
-		return -math.log(prob_joint)
+		return -math.log(prob_joint+1e-9)
 
 	def build_network(self, garda, sensors, h=0, f2i_factor=10000):
 		self.mcf = pywrapgraph.SimpleMinCostFlow()

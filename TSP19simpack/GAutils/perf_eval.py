@@ -39,10 +39,10 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
     row_ind, col_ind = linear_sum_assignment(cost) # Using hungarian method
     # compute the OSPA metric
     total_loc, ospa_loc = 0,0
-    err_pos, err_vel, ntrue =0,0,0
-    n = max(len(est_scene), len(true_scene))
-    m = min(len(est_scene), len(true_scene))
-    ntrue = 0
+    err_pos, err_vel =0,0
+    n = max(len(est_scene), len(true_scene)) # Total est count
+    m = min(len(est_scene), len(true_scene)) # Count for err_pos, err_vel
+    ntrue = 0 # Total targets estimated close to truth
     PVerror = np.zeros((len(true_scene),2))
     for dn, (i,j) in enumerate(zip(row_ind, col_ind)):
         ct, cp, cv = compute_pos_error(est_scene[i], true_scene[j], loc_wt)
@@ -55,24 +55,24 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
             ntrue += 1 # Count number of actual targets estimates (CLose to truth)
         else:
             total_loc += 0
-            ospa_loc += c**p
+            ospa_loc += 0
             err_pos += (c/2)**p
             err_vel += (c/2)**p
-            PVerror[j,:]=[(c/2)**p,(c/2)**p]
+            PVerror[j,:]=[cp, cv] #[(c/2)**p,(c/2)**p]
     if m==0:# If nothing good found, give out 1 target
-        for dn, (i,j) in enumerate(zip(row_ind, col_ind)):
-            ct, cp, cv = compute_pos_error(est_scene[i], true_scene[j], loc_wt)
-            total_loc += ct**p
-            ospa_loc += min(ct**p,c**p)
+        virt_trgt = ob.PointTarget(0, 0.1, 0, 0)
+        for j in range(n):
+            ct, cp, cv = compute_pos_error(virt_trgt, true_scene[j], loc_wt)
+            total_loc += 0# ct**p
+            ospa_loc += 0
             err_pos += cp
             err_vel += cv
             PVerror[j,:]=[cp,cv]
             m+=1
-            break
 #    err_cn += len(est_scene)-len(true_scene) #(float(c**p*(n-m))/n)**(1/p)
     err_loc = (float(total_loc)/max(ntrue,1))**(1/p) 
     err_pos, err_vel = np.sqrt(float(err_pos)/m) , np.sqrt(float(err_vel)/m)
-    ospa_err = ( float(ospa_loc + max(n-m,0)* (c**p)) / n)**(1/p) # If n>m count extra misses
+    ospa_err = ( float(ospa_loc + max(n-ntrue,0)* (c**p)) / n)**(1/p) # If n>m count extra misses
     ospa_tuple = np.array([ospa_err,err_loc, len(est_scene)-len(true_scene), ntrue, err_pos]) 
     return ospa_tuple, PVerror
     
