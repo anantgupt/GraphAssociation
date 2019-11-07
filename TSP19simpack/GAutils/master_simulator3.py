@@ -406,6 +406,7 @@ def main():
     handle.write('Sensor Width={}\n'.format(cfg.swidtha))
     mcss=sensors[0].mcs
     handle.write('Sensor BW={}Hz,R_res={}m, D_res={}m/s \n'.format(mcss.B, 3e8/2/mcss.B, 3e8/2/mcss.fc/mcss.tf))
+    handle.write('Monte Carlo Iterations={}\n'.format(cfg.Nf))
 
     handle.write('mode={}\n'.format(cfg.mode))
     handle.write('Tlen={}\n'.format(cfg.Tlen))
@@ -419,7 +420,8 @@ def main():
     for fignum in range(1,12):
         plt.figure(fignum)
         plt.savefig("{}/{}".format(cfg.folder,fignum), Transparent=True)
-        pickle.dump(plt.figure(fignum), open("{}/plot{}.pickle".format(cfg.folder,fignum), "wb"))
+        if fignum not in [5,8,9]:
+            pickle.dump(plt.figure(fignum), open("{}/plot{}.pickle".format(cfg.folder,fignum), "wb"))
     plt.close('all')
     print('Processing+Plotting took {} s.'.format(time.time()-t))
 

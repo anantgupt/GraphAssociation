@@ -70,7 +70,7 @@ def main():
     set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
     run_it(datef, Nob_rng2, 'snr','Nob')
     ##################
-    snr_rng2 = [-15, -10]
+    snr_rng2 = [-15, -10, 0]
     # # SNR vS Nob
     set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
     run_it(datef, snr_rng2, 'Nob','snr')
@@ -97,16 +97,16 @@ def main():
     set_it(4, swidth_rng, [1,3,2],[snr_std, Nob_std, Nsens_std2])
     run_it(datef, np.arange(0,Nsens_std2-1),'swidth','rob')
     ################
-    swidth_rng2 = [0.2, 0.4, 0.8]
+    swidth_rng2 = [0.2, 0.5, 1, 2]
     Nsens_std2= 6
     # swidth vS Rob
     set_it(0, np.arange(0,Nsens_std2-1), [1,3,2],[snr_std, Nob_std, Nsens_std2])
     run_it(datef, swidth_rng2,'rob','swidth')
     ################
-    Nsens_rng2 = np.array([4,5,6,7,8,9,10, 12])
+    Nsens_rng2 = np.array([4,5,6,8,10, 12])
     # Rob vS Nsens
     set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
-    run_it(datef, np.arange(0,6),'Nsens','rob')
+    run_it(datef, np.arange(0,5),'Nsens','rob')
     ################
     Nsens_rng2 = [4,8, 12]
     # Nsens vS swidth
@@ -115,20 +115,23 @@ def main():
     
     ################
     ## DFT
+    datef2 =('results'+str(date.today().month)+str(date.today().day)
+        +'_'+str(datetime.now().hour)+str(datetime.now().minute)
+        +str(np.random.randint(100))+args.mode+'/DFT_fig_')
     ################
     rob_rng2 = [0, 1, 2, 100]
     cfg.estalgo = 1
     # SNR vS Nob
     set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef, snr_rng2,'Nob','snr')
+    run_it(datef2, snr_rng2,'Nob','snr')
     ################
     # Nob vS Nsens
     set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
-    run_it(datef, Nob_rng2,'Nsens','Nob')
+    run_it(datef2, Nob_rng2,'Nsens','Nob')
     ################
     # Nob vS snr
     set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef, rob_rng2,'snr','Nob')
+    run_it(datef2, rob_rng2,'snr','Nob')
 
     
 if __name__ == "__main__":
