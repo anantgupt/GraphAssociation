@@ -351,12 +351,12 @@ def remove_scc(G, sensors, minP=2):# efficient in-place implementation
 def remove_skipedge(G):# Removes skip edges
     for i, sobs in enumerate(G):
         for pid, sobc in enumerate(sobs):
-            print(len(sobc.lkf),end=' : ')
+#            print(len(sobc.lkf),end=' : ')
             for sobk in reversed(sobc.lkf):
                 if abs(sobk.sid-sobc.sid)>1:
                     sobc.lkf.remove(sobk)
                     sobk.lkb.remove(sobc)
-            print(len(sobc.lkf))
+#            print(len(sobc.lkf))
     return G
 
 def Relax2(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
@@ -418,6 +418,47 @@ def Rel3(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
             break
     return glen, L3
 
+def _heap(Gfix, sel_sigs, sensors, glen, cfgp): # Heap variant for Relax, SPEKF
+    G = cp.copy(Gfix)
+    L3, hc = 0, 0
+    Ns = minP = len(sensors)
+    min_chain_leng = max(Ns - cfgp['rob'],2)
+    hq = []
+    lg_thres = np.array([[chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
+                    [chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
+    lg_thres[0,0]=-np.inf
+    for i in range(2):
+        lg_thres[1][i]=-np.inf
+    for rho in range(1,Ns-min_chain_leng):
+        G = add_skipedge(G, sensors, rho)     
+    for i in range(Ns-min_chain_leng+1):
+        sobs = G[i]
+        for pid, sobc in enumerate(sobs):
+#            print(G[ind].val)
+            sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
+            L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
+    G, stopping_cr = remove_scc(G, sensors, minP)# Add skip connection
+    glen.append(sum(len(g) for g in G))
+    # Using heap to get leftover targets
+    if cfgp['mode'][-4:]=='heap':
+        # Make dict of remaining nodes keyed by sensor id, r, d
+        leftover = {} # collections.defaultdict(int)
+        for i, g in enumerate(G):
+#            print([(nd.oid, ndi) for ndi, nd in enumerate(g) if not nd.visited])# DEBUG
+            for ndi, nd in enumerate(g):
+                if not nd.visited:
+                    leftover[(i,nd.r, nd.d)] = nd.oid
+        for q in hq:
+            pidt = [leftover[(si,ri, di)] for (si, ri, di) in zip(q[4].sindx,q[4].r, q[4].d) if (si, ri, di) in leftover]
+            if len(pidt) == q[4].N:
+    #            print(q[3],q[4].r, path_check(G, q[4],pidt)) # DEBUG
+                if path_check(G, q[4],pidt) and q[4].N>=min_chain_leng:
+                    sel_sigs.append(q[4])
+                    for (si,pi) in zip(q[4].sindx,pidt):# Mark new ones as visited
+                        G[si][pi].visited = True
+                        G[si][pi].used = len(sel_sigs)-1
+    return glen, L3
+
 def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
     G = cp.copy(Gfix)
     scale = cfgp['hscale']
@@ -456,26 +497,12 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
                 hc+=1
         if stopping_cr or cfgp['mode'][-4:]=='heap': break # Only 1 iter for heap mode
         lg_thres=[lgt*sc for (lgt,sc) in zip(lg_thres, scale)] # Relax LLR thres outer loop
-        if cfgp['mode'][-1]=='2':
+        if cfgp['mode'][-1]!='2': # Nominal mode
             G = remove_skipedge(G) # NOTE: reset skip edges
     # Using heap to get leftover targets
     if cfgp['mode'][-4:]=='heap':
         # Make dict of remaining nodes keyed by sensor id, r, d
-        leftover = {} # collections.defaultdict(int)
-        for i, g in enumerate(G):
-#            print([(nd.oid, ndi) for ndi, nd in enumerate(g) if not nd.visited])# DEBUG
-            for ndi, nd in enumerate(g):
-                if not nd.visited:
-                    leftover[(i,nd.r, nd.d)] = nd.oid
-        for q in hq:
-            pidt = [leftover[(si,ri, di)] for (si, ri, di) in zip(q[4].sindx,q[4].r, q[4].d) if (si, ri, di) in leftover]
-            if len(pidt) == q[4].N:
-    #            print(q[3],q[4].r, path_check(G, q[4],pidt)) # DEBUG
-                if path_check(G, q[4],pidt) and q[4].N>=min_chain_leng:
-                    sel_sigs.append(q[4])
-                    for (si,pi) in zip(q[4].sindx,pidt):# Mark new ones as visited
-                        G[si][pi].visited = True
-                        G[si][pi].used = len(sel_sigs)-1
+        print('Wrong mode! check config. ')
     return glen, L3
 
 def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,False,False]): # code cleanup
@@ -743,7 +770,10 @@ def get_minpaths(G, sensors, mode, cfgp):
     if mode =='Rel3':
         glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode[:5]=='Relax' or mode[:5]=='SPEKF':#Run with relaxed params
-        glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
+        if mode[-4:]=='heap':
+            glen, L3 = _heap(G, sel_sigs, sensors, glen, cfgp)
+        else:
+            glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode=='Brute_iter':#Run with relaxed params
         glen, L3 = dispatcher[mode](G, sel_sigs, sensors, glen, cfgp)
 

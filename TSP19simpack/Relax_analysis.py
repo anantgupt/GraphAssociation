@@ -59,12 +59,12 @@ signal_mag =1 # NOTE: Set this carefully
 #sensors.append(ob.Sensor(1, 0))
 #sensors.append(ob.Sensor(3, 0))
 #sensors.append(ob.Sensor(5, 0))
-sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,9)]
+sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,7)]
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
 Nf = 1 #cfg.Nf
-Noba = [20] #cfg.Noba
+Noba = [25] #cfg.Noba
 static_snapshot = 1
 
 ## Estimation Parameters
@@ -75,7 +75,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-15
+snra = np.ones(Nf)*-10
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -112,7 +112,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 5
+cfgp['rob'] = 20
 cfgp['pmiss']=0.15
 cfgp['mode']='SPEKF' # SPEKF, Relax
 
@@ -179,38 +179,6 @@ for f in range(Nf):  # Loop over frames
     print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc, time.time()-t))
         #%%
     pr.plot_graph(G1, min_gsigs1, sensors, rd_wt, 77, plt, garda_sel) # From Relax
-    
-    if False: # Max flow Association (Not good)
-        Gnx, pos,ed_lbl = pr.plot_graph2(G1, graph_sigs, sensors, rd_wt, 78, plt, garda_sel) # All edges
-        import networkx as nx
-        plt.figure(79)
-        nx.draw_networkx(Gnx, pos)
-        edge_labels = nx.get_edge_attributes(Gnx,'flow')
-        for e in edge_labels:
-            edge_labels[e]= int(edge_labels[e])
-        nx.draw_networkx_edge_labels(Gnx, pos, label_pos=0.2, edge_labels = edge_labels)  
-        plt.figure(80)
-        nx.draw_networkx(Gnx, pos)
-        edge_labels = nx.get_edge_attributes(Gnx,'capacity')
-        for e in edge_labels:
-            edge_labels[e]= int(edge_labels[e])
-        nx.draw_networkx_edge_labels(Gnx, pos, label_pos=0.7, edge_labels = edge_labels)  
-        so_no = sum([len(g) for g in G1])
-        t = time.time()
-        tracks = pr.max_flow_assoc(Gnx.copy(), so_no, so_no+1)
-        min_gsigs = grpr.add_sosi_to_G(G1, Gnx, tracks, sensors)
-        print('Max-Flow Association took {}s'.format(time.time()-t))
-    #%% MCF Association
-    cfgp['mode']='SPEKF4' # SPEKF, Relax, Rel3, Relax4
-    from GAutils import mcft as mcft
-    t=time.time()
-    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
-#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
-#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
-    print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc3, time.time()-t))
-    pr.plot_graph(G1, min_gsigs3, sensors, rd_wt, 79, plt, garda_sel) # From Relax
-    #%%
-    
     for sig in min_gsigs1:
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
         sig.state_end.mean = new_pos
@@ -220,7 +188,20 @@ for f in range(Nf):  # Loop over frames
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
 #        print(dob, gtr.r)
-    pr.plot_scene(plt, scene, sensors, 76, 'GA-DFS detects {} targets'.format(len(min_gsigs1)))
+    pr.plot_scene(plt, scene, sensors, 76, '{} detects {} targets'.format(cfgp['mode'], len(min_gsigs1)))
+   
+    #%% MCF Association
+    cfgp['mode']='Relax4' # SPEKF, Relax, Rel3, Relax4
+    from GAutils import mcft as mcft
+    t=time.time()
+    min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
+#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
+#    min_gsigs3, glen3, rtime_assoc3 = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
+    print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc3, time.time()-t))
+    pr.plot_graph(G1, min_gsigs3, sensors, rd_wt, 79, plt, garda_sel) # From Relax
+    #%%
+    
+
 #    print('--')
     for sig in min_gsigs3:
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
@@ -230,7 +211,7 @@ for f in range(Nf):  # Loop over frames
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
 #        print(dob, gtr.r)
-    pr.plot_scene(plt, scene, sensors, 75, 'Min cost Flow detects {} targets'.format(len(min_gsigs3)))
+    pr.plot_scene(plt, scene, sensors, 75, '{} detects {} targets'.format(cfgp['mode'], len(min_gsigs3)))
     #%%
     break # Stop here (Older code ahead)
 # PLot Glen 2D:
