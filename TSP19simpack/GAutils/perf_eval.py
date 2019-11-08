@@ -105,7 +105,7 @@ def compute_rd_error(garda_est, garda_true, plt=[]):
             #     D_mat = np.delete(D_mat, row, axis=0); D_mat = np.delete(D_mat, col, axis=1)
             #     R_mat = np.delete(R_mat, row, axis=0); R_mat = np.delete(R_mat, col, axis=1)
         if plt:
-            plt.subplot(np.floor(np.sqrt(Ns)),np.ceil(np.sqrt(Ns)),si+1)
+            plt.subplot(np.floor(np.sqrt(Ns)),np.ceil(Ns/np.floor(np.sqrt(Ns))),si+1)
             plt.plot(gard_true.r, gard_true.d, 'k.')
             plt.plot(gard_est.r, gard_est.d, 'rx')
             for i in range(Np):
