@@ -213,7 +213,7 @@ def get_order(G, new_nd, target_nds, path, sensors, USE_EKF=False): # Slim versi
     if target_nds:
         target_nds_valid = list(filter(lambda x: ~x.visited, target_nds))
         if path.N<2: # Cannot calculate straigtness with 2 nodes
-            return target_nds_valid
+            return target_nds_valid, [np.inf for _ in target_nds_valid]
         else:
             g_cost=[]
             for tnd in target_nds_valid:
@@ -227,9 +227,11 @@ def get_order(G, new_nd, target_nds, path, sensors, USE_EKF=False): # Slim versi
                 g_cost.append(new_cost) # use trace maybe
         srtind = np.argsort(g_cost)
         childs = [target_nds[ind] for ind in srtind]
+        gcs = [g_cost[ind] for ind in srtind]
     else:
         childs=[]
-    return childs
+        gcs = []
+    return childs, gcs
 
 def get_order2(G, new_nd, target_nds, path, sensors): # Heavy
     if target_nds:
@@ -346,23 +348,16 @@ def remove_scc(G, sensors, minP=2):# efficient in-place implementation
                 flag = 0
     return G, False
 
-def remove_scc2(G, sensors):# Inefficient implementation
-    garda=[]
-    flag = 0
-    for i, sobs in enumerate(G):# NOTE: Should delete node from G instead of creating new G
-        gard_new = ob.gardEst()
+def remove_skipedge(G):# Removes skip edges
+    for i, sobs in enumerate(G):
         for pid, sobc in enumerate(sobs):
-            if not sobc.visited:
-                gard_new.add_Est(sobc.g, 0, sobc.r, sobc.d)
-        if len(gard_new.r)==0: # Just stop here if need to save time
-#            print([sobc.visited for pid, sobc in enumerate(sobs)])
-            flag+=1
-            if flag>1: return G, True # Empty consecutive sensor
-        else: # Reset flag if obs found
-            flag = 0
-        garda.append(gard_new)
-    G = make_graph(garda, sensors, True) # With skip connextion
-    return G, False
+            print(len(sobc.lkf),end=' : ')
+            for sobk in reversed(sobc.lkf):
+                if abs(sobk.sid-sobc.sid)>1:
+                    sobc.lkf.remove(sobk)
+                    sobk.lkb.remove(sobc)
+            print(len(sobc.lkf))
+    return G
 
 def Relax2(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     G = cp.copy(Gfix)
@@ -386,6 +381,41 @@ def Relax2(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
         scale = scale*cfgp['incr']
         if glen[-1]-glen[-2]==0 and minP>=cfgp['Tlen']: # Might wanna use the heap here for speed.
             minP-=1
+    return glen, L3
+
+
+def Rel3(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
+    G = cp.copy(Gfix)
+    scale = cfgp['hscale']
+    hN = cfgp['hN']
+    L3 = 0
+    Ns = minP = len(sensors)
+    min_chain_leng = max(Ns - cfgp['rob'],2)
+    hq = []
+    lg_thres = np.array([[chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
+                    [chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
+    lg_thres[0,0]=-np.inf
+    for i in range(2):
+        lg_thres[1][i]=-np.inf
+        
+    for h in range(hN):
+#        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
+        for _ in range(4):
+            for i in range(Ns-minP+1):
+                sobs = G[i]
+                for pid, sobc in enumerate(sobs):
+        #            print(G[ind].val)
+                    sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
+                    L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
+            G, stopping_cr = remove_scc(G, sensors)# Add skip connection
+            glen.append(sum(len(g) for g in G))
+            if stopping_cr:# Until path of length minP left in Graph
+                break
+            lg_thres=[lgt*sc for (lgt,sc) in zip(lg_thres, scale)] # Relax LLR thres outer loop
+        if minP>=min_chain_leng: # Might wanna use the heap here for speed.
+            minP-=1
+        else:
+            break
     return glen, L3
 
 def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
@@ -426,7 +456,8 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
                 hc+=1
         if stopping_cr or cfgp['mode'][-4:]=='heap': break # Only 1 iter for heap mode
         lg_thres=[lgt*sc for (lgt,sc) in zip(lg_thres, scale)] # Relax LLR thres outer loop
-        
+        if cfgp['mode'][-1]=='2':
+            G = remove_skipedge(G) # NOTE: reset skip edges
     # Using heap to get leftover targets
     if cfgp['mode'][-4:]=='heap':
         # Make dict of remaining nodes keyed by sensor id, r, d
@@ -453,23 +484,31 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
     L3 = 0 # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     if not nd.visited:# Check if tracks could be joined
-        childs = get_order(G, nd, nd.lkf, sig, sensors, cfgp['mode']=='SPEKF')
+        childs, gcs = get_order(G, nd, nd.lkf, sig, sensors, cfgp['mode'][:5]=='SPEKF')
         L3+=len(childs) # If counting all edges, make 1
-        for ndc in childs:# Compute costs for all neighbors
+        for (ndc, gcc) in zip(childs, gcs):# Compute costs for all neighbors
             if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
             if not ndc.visited:
                 pnext = cp.copy(pid)
                 pnext.append(ndc.oid)
                 ndc_sig = cp.copy(sig)
-                if cfgp['mode']=='SPEKF':
+                if cfgp['mode'][-4:]!='heap' and ndc_sig.N>2 and cfgp['mode'][-1]!='4' and gcc>lg_thres[1][-1]: # Relax/SPEKF Algo
+                    continue
+                if cfgp['mode'][:5]=='SPEKF':
                     ndc_sig.add_update_ekf(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 else:
                     ndc_sig.add_update3(ndc.r, ndc.d, ndc.g, ndc.sid, sensors)
                 if ndc_sig.N>2:
-                    l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
+                    
                     if cfgp['mode'][-4:]!='heap': # For heap mode don't stop early
-                        if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
-                            continue
+                        if cfgp['mode'][-1]!='4':
+                            g_cost = sum(ndc_sig.gc)
+                            if g_cost>lg_thres[1][-1]:
+                                continue
+                        else: # Relax4 algorithm (Slower)
+                            l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
+                            if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
+                                continue
                 L3+=DFS(G, ndc, ndc_sig, sel_sigs, pnext, sensors, cfgp, minP, hq, lg_thres, opt)
 
 
@@ -683,7 +722,7 @@ def get_minpaths(G, sensors, mode, cfgp):
     sel_sigs =[] # Note: wt includes the crb_min for range, doppler
     L3 = 0
     glen = [sum(len(g) for g in G)]
-    dispatcher ={'DFS':DFS, 'Brute': Brute, 'SPEKF': Relax, 'Relax': Relax, 'Brute_iter': Brute_iter}
+    dispatcher ={'DFS':DFS, 'Brute': Brute, 'SPEKF': Relax, 'Relax': Relax,'Rel3': Rel3, 'Brute_iter': Brute_iter}
     if mode in ['DFS','Brute']:
         for i, sobs in enumerate(G):
             for pid, sobc in enumerate(sobs):
@@ -701,6 +740,8 @@ def get_minpaths(G, sensors, mode, cfgp):
             if sig!=None:
                 sig_new.append(sig)
         sel_sigs= sig_new
+    if mode =='Rel3':
+        glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode[:5]=='Relax' or mode[:5]=='SPEKF':#Run with relaxed params
         glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode=='Brute_iter':#Run with relaxed params

@@ -177,7 +177,7 @@ for f in range(Nf):  # Loop over frames
                 'n_Rc':cfg.n_Rc,
                 'n_pfa':cfg.n_pfa,
                 # Association
-                'rob':cfg.roba[0],
+                'rob':int(cfg.roba[0]),
                 'mode': cfg.mode,
                 'hscale':cfg.hscale,
                 'incr':cfg.incr,
@@ -197,7 +197,7 @@ for f in range(Nf):  # Loop over frames
     print(time.time()-t)
     t=time.time()
     if 2: #cfgp['mode'] == 'mcf':
-        min_gsigs2, glen,_ = mcft.get_mcfsigs(garda_sel,sensors)
+        min_gsigs2, glen,_ = mcft.get_mcfsigs(garda_sel,sensors, cfgp)
         glen = [1,1]
     if 1:
         G2,_ = grpr.make_graph(garda_sel, sensors, True)
