@@ -227,13 +227,16 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
                 for j in range(4):
                     Hk[i,j] = cls.f[i][j](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x)
             Ik = Hk @ Pp @ Hk.T + Rk # Innovation covariance (2x2)
-            Kk = Pp @ Hk.T @ np.linalg.inv(Ik) # Kalman Gain (4x2)
-            yk = np.array([rnew, dnew]) # Measurement
-            yhk = np.array([cls.hk[i](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x) for i in range(2)])
-            Stn = Stp + Kk @ (yk - yhk)
-            Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
-            
-            return np.inner((yk - yhk), np.linalg.inv(Ik)@(yk - yhk))
+            try:
+                Kk = Pp @ Hk.T @ np.linalg.inv(Ik) # Kalman Gain (4x2)
+                yk = np.array([rnew, dnew]) # Measurement
+                yhk = np.array([cls.hk[i](Stp[0],Stp[1],Stp[2],Stp[3],sensors[sindx].x) for i in range(2)])
+                Stn = Stp + Kk @ (yk - yhk)
+                Pn = (np.eye(4) - Kk@Hk) @ Pp @ (np.eye(4) - Kk@Hk) + Kk @ Rk @ Kk.T
+                
+                return np.inner((yk - yhk), np.linalg.inv(Ik)@(yk - yhk))
+            except: # If any degenerate case occurs
+                return np.inf
         else: # Compute initial covariance
             return 1
 
