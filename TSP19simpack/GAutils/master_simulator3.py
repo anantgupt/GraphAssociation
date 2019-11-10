@@ -33,7 +33,7 @@ def main():
 #if 1: # For spyder     
     Nsensa = cfg.Nsensa
     # Naming algorithm names & Plotting
-    alg_name = ['Estimation', 'Graph Init.','Association','Refinement','All_edges','Brute',cfg.mode]
+    alg_name = ['Estimation', 'Graph Init.','Association','Refinement','All_edges','Brute',cfg.mode+'-Edges',cfg.mode+'-LLR']
     
     Nf = cfg.Nf
     Noba=cfg.Noba
@@ -41,7 +41,7 @@ def main():
 
     static_snapshot = cfg.static_snapshot
 
-    runtime = np.zeros([7,cfg.Ninst])
+    runtime = np.zeros([8,cfg.Ninst])
 
     ospa_error1 = np.zeros([cfg.Ninst,cfg.Nf,5])
     PVerror = np.zeros((cfg.Ninst, max(Noba),2))
@@ -54,7 +54,7 @@ def main():
     Nmiss1=np.zeros((cfg.Ninst, max(Nsensa)))
     Nfa1 =np.zeros((cfg.Ninst, max(Nsensa)))
     grca = [[] for _ in range(cfg.Ninst)]
-    glena = np.zeros((cfg.Ninst, cfg.hN+1))
+    glena = np.zeros((cfg.Ninst, 100))
     Ndet = np.zeros((cfg.Ninst,cfg.Nf))
     plt.close('all')
     #for plt_n in range(1,6): plt.figure(plt_n), plt.clf()
@@ -188,7 +188,7 @@ def main():
     plt.ylabel('Number of Tracks visited'),plt.title('Association Complexity')
     plt.subplot(1,2,2)
     pltn={}
-    for i in range(4,7):
+    for i in range(4,8):
         pltn[i]= plt.plot(rng_used, runtime[i,:], label = alg_name[i]),plt.grid(True)
     plt.legend(),plt.xlabel(cfg.xlbl),plt.ylabel('Number of Tracks visited'),plt.title('Association Complexity')
     plt.yscale('log')
@@ -358,7 +358,8 @@ def main():
     plt.figure(10)
     plt.subplot(1,2,1)
     for i in range(cfg.Ninst):
-        plt.plot(range(cfg.hN+1), (glena[i,:]/Nf), label = str(rng_used[i]))
+        hN_max = np.count_nonzero(glena[i,:])
+        plt.plot(range(hN_max+2), (glena[i,:hN_max+2]/Nf), label = str(rng_used[i]))
     plt.legend(),plt.grid(True),plt.title('Graph nodes v/s relax iterations'),plt.ylabel('Num vertices'),plt.xlabel('Iterations')
     plt.subplot(1,2,2)
     plt.errorbar(rng_used, np.mean(Ndet, axis=1), np.std(Ndet, axis =1), label = 'Estimated')

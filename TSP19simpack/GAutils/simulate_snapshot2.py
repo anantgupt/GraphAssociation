@@ -59,7 +59,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     for sensorID, sensor in enumerate(sensors):
         beat[sensorID, :, :] = pr.add_cnoise(beat[sensorID, :, :], sensor.meas_std) # Add noise
 #        print('Target{}: x={},y={},vx={},vy={}'.format(tno, target_current.x, target_current.y,target_current.vx,target_current.vy))
-    runtime = np.zeros(7)
+    runtime = np.zeros(8)
     t=time.time()
     if cfgp['estalgo'] == 0:
         garda_sel = ea.meth2(np.copy(beat), sensors, cfgp['Nsel'], [1,1])
@@ -81,9 +81,11 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     runtime[5],_ = grpr.get_BruteComplexity(G1)
 
     if cfgp['mode']=='mcf':
-        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
+        min_gsigs, glen, runtime[6:8] = mcft.get_mcfsigs(garda_sel, sensors, cfgp)
     elif cfgp['mode']=='mcf_all':
-        min_gsigs, glen, runtime[6] = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
+        min_gsigs, glen, runtime[6:8] = mcft.get_mcfsigs_all(garda_sel, sensors, cfgp)
+    elif cfgp['mode']=='mle':
+        min_gsigs, glen, runtime[6:8] = mle.iterative_prune_pht(garda_sel, sensors, cfgp, sum(len(g.r) for g in garda_sel)//2)
     else:
         t=time.time()
         G0,runtime[4] = grpr.make_graph(garda_sel, sensors, 0) # No skip connection
@@ -91,7 +93,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
         if cfg.scene_plots:
             [graph_sigs, Ngsig]=grpr.enum_graph_sigs(G1, sensors)
             pr.plot_graph(G1, graph_sigs, sensors, rd_wt, 12, plt)
-        min_gsigs, glen, runtime[6] = grpr.get_minpaths(G0, sensors, cfgp['mode'], cfgp)
+        min_gsigs, glen, runtime[6:8] = grpr.get_minpaths(G0, sensors, cfgp['mode'], cfgp)
     runtime[2] = time.time() - t # Total time (Make graph+traverse graph)
 
     t = time.time()

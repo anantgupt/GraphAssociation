@@ -7,6 +7,7 @@ from scipy.stats import chi2
 from scipy.stats import norm
 from GAutils import config as cfg
 from GAutils import PCRLB as pcrlb
+from GAutils import gradient_methods as gm
 
 def create_llrmap(xrg, yrg, vxrg, vyrg, sensors, obs):
     # xrg : [min, max, #gridpoints]
@@ -311,3 +312,67 @@ def crbrd(sensor, alpha=1):
     except:
         out = np.diag(1/np.diag(FIM))
     return out
+
+###################3  ML Estimation Algorithm %%%%%%%%%%%%%%%%%%%%%5
+def associate_garda(garda, sensors, rho=1e5): # Enumerates all possible pairs
+    # Creates pairs depending on robustness
+    Ns = len(sensors)
+    Phantoms = []
+    for sel_sensor in range(Ns-1):
+        sel_range = garda[sel_sensor].r
+        sel_dop = garda[sel_sensor].d
+        for i, (ri,di) in enumerate(zip(sel_range,sel_dop)):
+            for j in range(sel_sensor+1,min(Ns,sel_sensor+1+rho)):
+                for (rj,dj) in zip(garda[j].r, garda[j].d):
+                    obj = pr.get_pos_from_rd(ri, rj, di, dj, sel_sensor , j, sensors)
+                    if obj:
+                        Phantoms.append(obj)
+
+    return Phantoms
+def iterative_prune_pht(garda, sensors, cfgp, Nob=1e2): # Phantom based MLE
+    garda_sel = garda
+    llr_val = []
+    centers=[]
+    sigs = []
+    glen = [sum(len(g.r) for g in garda_sel)]
+    L3 = np.zeros(2)
+    for i in range(Nob):
+        pht_all = associate_garda(garda_sel, sensors, cfgp['rob'])
+        if len(pht_all)<1:
+            break
+        ph_llr = [est_llr(pht, sensors, garda_sel, cfgp['rd_wt']) for pht in pht_all]
+        rid = np.argmax(ph_llr)
+        cluster_center = pht_all[rid]
+        garda_sel, sig = reduce_gard(garda_sel, sensors, cluster_center, cfgp['rd_wt'])
+        centers.append(cluster_center)
+        llr_val.append(ph_llr[rid])
+        sigs.append(sig)
+        glen.append(sum(len(g.r) for g in garda_sel))
+        L3[1] += len(pht_all)
+    L3[0]=sum(glen)
+    return sigs, glen, L3#, llr_val, centers
+def reduce_gard(garda_ref, sensors, target, w, sindx=[]):# NOTE: Should only delete gard's from sensors that observe them
+    if not sindx:   sindx=np.arange(len(sensors))
+    sig = []
+    for sid in sindx:
+        if not len(garda_ref[sid].r): # If this sensor has no meas left, skip to next
+            continue
+        x = (sensors[sid].x-target.x)
+        y = (sensors[sid].y-target.y)
+        vx = (sensors[sid].vx-target.vx)
+        vy = (sensors[sid].vy-target.vy)
+        pos = [x,y,vx,vy]
+        err = (w[0]*(garda_ref[sid].r - gm.r_eval(pos))**2+w[1]*(garda_ref[sid].d - gm.d_eval(pos))**2)
+        rid = np.argmin(err)
+        rval = err[rid]
+        if rval < 1e2*np.inner(sensors[sid].getnominalCRB(),w): # NOTE: Threshold for deleting gard
+            if not sig:
+                sig = ob.SignatureTracks(garda_ref[sid].r[rid], garda_ref[sid].d[rid], sid, garda_ref[sid].g[rid])
+                garda_ref[sid].pop(rid)
+            else:
+                try:
+                    sig.add_update3(garda_ref[sid].r[rid], garda_ref[sid].d[rid], garda_ref[sid].g[rid],sid, sensors)
+                    garda_ref[sid].pop(rid)
+                except:
+                    print(',',end='')
+    return garda_ref, sig

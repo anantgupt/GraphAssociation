@@ -37,6 +37,7 @@ from GAutils import config as cfg # Sim parameters
 from GAutils import bel_prop as bp
 from GAutils import graph_primitives as grpr
 from GAutils import est_algo as ea
+#from GAutils import iter_prune as itpr
 
 #init_notebook_mode()
 np.set_printoptions(precision=2)# REduce decimal digits
@@ -59,7 +60,7 @@ signal_mag =1 # NOTE: Set this carefully
 #sensors.append(ob.Sensor(1, 0))
 #sensors.append(ob.Sensor(3, 0))
 #sensors.append(ob.Sensor(5, 0))
-sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,7)]
+sensors = [ob.Sensor(x,0) for x in np.linspace(-2,2,9)]
 
 tf_list = np.array([sensor.mcs.tf for sensor in sensors])  # All sensors frame times equal
 tfa_list = np.array([sensor.mcs.get_tfa() for sensor in sensors])  # Adjust so that samples vary to keep frame time const.
@@ -75,7 +76,7 @@ colr=['r','b','g']
 runtime = np.zeros([3,Nf])
 rtime_algo = dict()
 # snra = np.linspace(-20,10,Nf)
-snra = np.ones(Nf)*-10
+snra = np.ones(Nf)*-15
 # Setup video files
 #plot_scene(fig, scene_init, sensors, 3)
 # FFMpegWriter = manimation.writers['ffmpeg']
@@ -112,9 +113,9 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'gn_steps':cfg.gn_steps,
                 'fu_alg':cfg.fu_alg
                 }
-cfgp['rob'] = 20
+cfgp['rob'] = 2
 cfgp['pmiss']=0.15
-cfgp['mode']='SPEKF' # SPEKF, Relax
+cfgp['mode']='Relax' # SPEKF, Relax
 
 for f in range(Nf):  # Loop over frames
     targets_list = []
@@ -167,7 +168,7 @@ for f in range(Nf):  # Loop over frames
     
     rob = cfgp['rob']
     t=time.time()
-    G1, rtime_make = grpr.make_graph(garda_sel, sensors, rob)
+    G1, rtime_make = grpr.make_graph(garda_sel, sensors, 0)
     print('Graph gen took {}s'.format(rtime_make))
     G0 = cp.deepcopy(G1)
     if False:    
@@ -191,7 +192,7 @@ for f in range(Nf):  # Loop over frames
     pr.plot_scene(plt, scene, sensors, 76, '{} detects {} targets'.format(cfgp['mode'], len(min_gsigs1)))
    
     #%% MCF Association
-    cfgp['mode']='Relax4' # SPEKF, Relax, Rel3, Relax4
+    cfgp['mode']='Relax-heap' # SPEKF, Relax, Rel3, Relax4
     from GAutils import mcft as mcft
     t=time.time()
     min_gsigs3, glen3, rtime_assoc3 = grpr.get_minpaths(cp.deepcopy(G1), sensors, cfgp['mode'], cfgp) # mcft.get_mcfsigs(garda_sel, sensors)
@@ -200,8 +201,6 @@ for f in range(Nf):  # Loop over frames
     print('{} Association took {}, {}s'.format(cfgp['mode'], rtime_assoc3, time.time()-t))
     pr.plot_graph(G1, min_gsigs3, sensors, rd_wt, 79, plt, garda_sel) # From Relax
     #%%
-    
-
 #    print('--')
     for sig in min_gsigs3:
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
@@ -212,6 +211,21 @@ for f in range(Nf):  # Loop over frames
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
 #        print(dob, gtr.r)
     pr.plot_scene(plt, scene, sensors, 75, '{} detects {} targets'.format(cfgp['mode'], len(min_gsigs3)))
+    #%% ML est
+    t=time.time()
+    min_gsigs4, glen4, rtime_assoc4 = mle.iterative_prune_pht(cp.deepcopy(garda_sel), sensors, cfgp, Nob)
+    print('{} Association took {}, {}s'.format('ML', rtime_assoc4, time.time()-t))
+    for sig in min_gsigs4:
+        [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
+        sig.state_end.mean = new_pos
+    plt.figure(87)
+    for ctr in centers:
+        dob = ctr.state
+        plt.quiver(dob[0], dob[1], dob[2], dob[3],color='g')
+    for gtr in min_gsigs4:
+        dob = gtr.state_end.mean
+        plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
+    pr.plot_scene(plt, scene, sensors, 87, '{} detects {} targets'.format('ML', len(min_gsigs4)))
     #%%
     break # Stop here (Older code ahead)
 # PLot Glen 2D:

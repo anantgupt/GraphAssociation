@@ -420,7 +420,7 @@ def Rel3(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
 
 def _heap(Gfix, sel_sigs, sensors, glen, cfgp): # Heap variant for Relax, SPEKF
     G = cp.copy(Gfix)
-    L3, hc = 0, 0
+    L3= np.zeros(2)
     Ns = minP = len(sensors)
     min_chain_leng = max(Ns - cfgp['rob'],2)
     hq = []
@@ -463,7 +463,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
     G = cp.copy(Gfix)
     scale = cfgp['hscale']
     hN = cfgp['hN']
-    L3, hc = 0, 0
+    L3 = np.zeros(2); hc = 0
     Ns = minP = len(sensors)
     min_chain_leng = max(Ns - cfgp['rob'],2)
     hq = []
@@ -508,11 +508,11 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
 def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,False,False]): # code cleanup
     if sig==None:
         return 0
-    L3 = 0 # Count edges visited
+    L3 = np.zeros(2) # Count edges visited
     ag_pfa, al_pfa, rd_wt = cfgp['ag_pfa'],cfgp['al_pfa'],cfgp['rd_wt']
     if not nd.visited:# Check if tracks could be joined
         childs, gcs = get_order(G, nd, nd.lkf, sig, sensors, cfgp['mode'][:5]=='SPEKF')
-        L3+=len(childs) # If counting all edges, make 1
+        L3[0]+=len(childs) # If counting all edges, make 1
         for (ndc, gcc) in zip(childs, gcs):# Compute costs for all neighbors
             if not path_check(G, sig, pid): break # Added to stop DFS if parent is visited!
             if not ndc.visited:
@@ -533,6 +533,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                             if g_cost>lg_thres[1][-1]:
                                 continue
                         else: # Relax4 algorithm (Slower)
+                            L3[1]+=1
                             l_cost, g_cost = mle.est_pathllr(ndc_sig, sensors, minP+2, rd_wt)
                             if l_cost>lg_thres[0][-1]: # Avoid going deeper as cost only increases
                                 continue
@@ -544,7 +545,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                 if cfgp['mode'][-4:]!='heap':
                     if sig.N>=minP and sig.gc is not None: # Atleast 3 elements
                         l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
-                        L3+=0 # If ONLY Counting paths, make 1, ELSE 0
+                        L3[1]+=1 # If ONLY Counting paths, make 1, ELSE 0
     #                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
                         deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
                         if l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB
@@ -555,7 +556,7 @@ def DFS(G, nd, sig, sel_sigs, pid, sensors, cfgp, minP, hq, lg_thres, opt=[True,
                 else: # For Heap mode
                     if sig.N>=minP-1 and sig.gc is not None: # Atleast 3 elements
                         l_cost, g_cost = mle.est_pathllr(sig, sensors, minP+2, rd_wt);
-                        L3+=0 # If ONLY Counting paths, make 1, ELSE 0
+                        L3[1]+=1 # If ONLY Counting paths, make 1, ELSE 0
     #                    print(minP, l_cost, lg_thres[0][sig.N-1], g_cost, lg_thres[1][sig.N-1], pid ) #USE THIS TO DEBUG
                         deg_free = min(sig.N+len(sensors)-minP-1, len(sensors)-1)
                         if sig.N>=minP and l_cost < lg_thres[0][deg_free] and abs(sum(sig.gc))<lg_thres[1][deg_free]: # Based on CRLB

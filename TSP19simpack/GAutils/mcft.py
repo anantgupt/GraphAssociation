@@ -39,6 +39,7 @@ class MinCostFlowTracker:
 		self._id2node = tools.map_id2node(detections)
 		self._node2id = tools.map_node2id(detections)
 		self._fib_cache = {0: 0, 1: 1}
+		self.L3 = 0
 
 	def _fib(self, n):
 		if n in self._fib_cache:
@@ -80,6 +81,7 @@ class MinCostFlowTracker:
 		if trg==None:
 			return 1e7
 		prob_joint = mle.est_prob_joint(trg, sensors, garda, cfg.rd_wt)
+		self.L3 += 1
 #		print(prob_joint)
 		return -math.log(prob_joint+1e-9)
 
@@ -263,8 +265,8 @@ def get_mcfsigs(garda, sensors, cfgp):
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	glen.append(glen[0]-sum(sg.N for sg in sigs))
-	L3 = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
-	return sigs, glen, L3
+	L3a = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
+	return sigs, glen, [L3a, self.L3]
 
 	# EXtract using Ns iteration ignoring flow length
 def get_mcfsigs_all(garda, sensors, cfgp):
@@ -281,7 +283,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	glen = []
 	Ns = minP = len(sensors)
 	sigs = []
-	L3 = 0
+	L3a = 0
 	min_chain_leng = max(Ns - cfgp['rob'],2)
 	# Let's track them!
 	start = time.time()
@@ -325,7 +327,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 		V=tracker.mcf.NumNodes()
 		E=tracker.mcf.NumArcs()
 		glen.append(V/2-1)
-		L3 += int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
+		L3a += int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
 	# If nothing found
 	if not sigs:
 		for sid, sensor in enumerate(sensors):
@@ -338,7 +340,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	
-	return sigs, glen, L3
+	return sigs, glen, [L3a, self.L3]
 
 def reduce_gard(garda, sensors, sigs):
 	# Creates graph from all obs in garda excluding those used in sigs

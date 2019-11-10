@@ -504,6 +504,11 @@ class SignatureTracks: # collection of associated ranges[], doppler[] & estimate
                 cls.state_head = new_state
                 cls.state_end = new_state
             else:
+                cls.N = cls.N-1
+                cls.r = np.delete(cls.r, cls.N)
+                cls.d = np.delete(cls.d, cls.N)
+                cls.g = np.delete(cls.g, cls.N)
+                cls.sindx = np.delete(cls.sindx, cls.N)
                 raise ValueError('Attempted illegal add with {},{} at sensor ({},{})'.format(rp[0], rs, sindxp[0], sindx))
         
     def add_update_ekf(cls, rs, ds, gs, sindx, sensors):
