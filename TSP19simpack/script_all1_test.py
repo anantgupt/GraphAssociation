@@ -64,74 +64,74 @@ def main():
     cfg.sep_th = args.sep_th
     cfg.pmiss = args.pmiss
 
-    ##################
-    # Nob vs SNR
-    Nob_rng2 = [1,10, 20, 30]
-    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef, Nob_rng2, 'snr','Nob')
-    ##################
-    snr_rng2 = [-15, -10, 0]
-    # # SNR vS Nob
-    set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef, snr_rng2, 'Nob','snr')
-    #################
-    Nsens_std2 = 6
-    rob_rng2 = [0, 1, 2, 20]
-    # # Rob vs Nob 
-    set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
-    run_it(datef, rob_rng2,'Nob','rob')
-    #################
-    Nsens_rng2 = [4,6]
-    # Nsens vs Nob
-    set_it(3, Nob_rng, [0,1,4],[rob_std, snr_std, swidth_std])
-    run_it(datef, Nsens_rng2,'Nob','Nsens')
-    ####################
-    Nob_rng2 = [10, 20]
-    # Nob vS Nsens
-    set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
-    run_it(datef, Nob_rng2,'Nsens','Nob')
+#    ##################
+#    # Nob vs SNR
+#    Nob_rng2 = [1,10, 20, 30]
+#    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+#    run_it(datef, Nob_rng2, 'snr','Nob')
+#    ##################
+#    snr_rng2 = [-15, -10, 0]
+#    # # SNR vS Nob
+#    set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+#    run_it(datef, snr_rng2, 'Nob','snr')
+#    #################
+#    Nsens_std2 = 6
+#    rob_rng2 = [0, 1, 2, 20]
+#    # # Rob vs Nob 
+#    set_it(3, Nob_rng, [1,2,4],[snr_std, Nsens_std, swidth_std])
+#    run_it(datef, rob_rng2,'Nob','rob')
+#    #################
+#    Nsens_rng2 = [4,6]
+#    # Nsens vs Nob
+#    set_it(3, Nob_rng, [0,1,4],[rob_std, snr_std, swidth_std])
+#    run_it(datef, Nsens_rng2,'Nob','Nsens')
+#    ####################
+#    Nob_rng2 = [10, 20]
+#    # Nob vS Nsens
+#    set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
+#    run_it(datef, Nob_rng2,'Nsens','Nob')
     ################
 #    swidth_rng2 = [0.1, 0.2, 0.4, 0.8]
     Nsens_std2= 6
     # Rob vS swidth
     set_it(4, swidth_rng, [1,3,2],[snr_std, Nob_std, Nsens_std2])
-    run_it(datef, np.arange(0,Nsens_std2-1),'swidth','rob')
+    run_it(datef, np.arange(2,Nsens_std2-1),'swidth','rob')
     ################
-    swidth_rng2 = [0.2, 0.5, 1, 2]
-    Nsens_std2= 6
-    # swidth vS Rob
-    set_it(0, np.arange(0,Nsens_std2-1), [1,3,2],[snr_std, Nob_std, Nsens_std2])
-    run_it(datef, swidth_rng2,'rob','swidth')
-    ################
-    Nsens_rng2 = np.array([4,5,6,8,10, 12])
-    # Rob vS Nsens
-    set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
-    run_it(datef, np.arange(0,5),'Nsens','rob')
-    ################
-    Nsens_rng2 = [4,8, 12]
-    # Nsens vS swidth
-    set_it(4, swidth_rng, [0,1,3],[rob_std, snr_std, Nob_std])
-    run_it(datef, Nsens_rng2,'swidth','Nsens')
-    
-    ################
-    ## DFT
-    datef2 =('results'+str(date.today().month)+str(date.today().day)
-        +'_'+str(datetime.now().hour)+str(datetime.now().minute)
-        +str(np.random.randint(100))+args.mode+'/DFT_fig_')
-    ################
-    rob_rng2 = [0, 1, 2, 100]
-    cfg.estalgo = 1
-    # SNR vS Nob
-    set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef2, snr_rng2,'Nob','snr')
-    ################
-    # Nob vS Nsens
-    set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
-    run_it(datef2, Nob_rng2,'Nsens','Nob')
-    ################
-    # Nob vS snr
-    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
-    run_it(datef2, Nob_rng2,'snr','Nob')
+#    swidth_rng2 = [0.2, 0.5, 1, 2]
+#    Nsens_std2= 6
+#    # swidth vS Rob
+#    set_it(0, np.arange(0,Nsens_std2-1), [1,3,2],[snr_std, Nob_std, Nsens_std2])
+#    run_it(datef, swidth_rng2,'rob','swidth')
+#    ################
+#    Nsens_rng2 = np.array([4,5,6,8,10, 12])
+#    # Rob vS Nsens
+#    set_it(2, Nsens_rng2, [1,3,4],[snr_std, Nob_std, swidth_std])
+#    run_it(datef, np.arange(0,5),'Nsens','rob')
+#    ################
+#    Nsens_rng2 = [4,8, 12]
+#    # Nsens vS swidth
+#    set_it(4, swidth_rng, [0,1,3],[rob_std, snr_std, Nob_std])
+#    run_it(datef, Nsens_rng2,'swidth','Nsens')
+#    
+#    ################
+#    ## DFT
+#    datef2 =('results'+str(date.today().month)+str(date.today().day)
+#        +'_'+str(datetime.now().hour)+str(datetime.now().minute)
+#        +str(np.random.randint(100))+args.mode+'/DFT_fig_')
+#    ################
+#    rob_rng2 = [0, 1, 2, 100]
+#    cfg.estalgo = 1
+#    # SNR vS Nob
+#    set_it(3, Nob_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+#    run_it(datef2, snr_rng2,'Nob','snr')
+#    ################
+#    # Nob vS Nsens
+#    set_it(2, Nsens_rng, [0,1,4],[rob_std, snr_std, swidth_std])
+#    run_it(datef2, Nob_rng2,'Nsens','Nob')
+#    ################
+#    # Nob vS snr
+#    set_it(1, snr_rng, [0,2,4],[rob_std, Nsens_std, swidth_std])
+#    run_it(datef2, Nob_rng2,'snr','Nob')
 
     
 if __name__ == "__main__":
