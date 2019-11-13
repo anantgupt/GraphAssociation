@@ -93,7 +93,7 @@ def main():
                 'rd_wt':cfg.rd_wt,
                 'static_snapshot': cfg.static_snapshot,
                 'sep_th':cfg.sep_th,
-                'pmiss':cfg.pmiss,
+                'pmiss':cfg.pmissa[inst],
                 'estalgo':cfg.estalgo, 
                 'osps':cfg.osps,
                 'n_Rc':cfg.n_Rc,
@@ -411,7 +411,7 @@ def main():
 
     handle.write('mode={}\n'.format(cfg.mode))
     handle.write('Tlen={}\n'.format(cfg.Tlen))
-    handle.write('Pmiss={}\n'.format(cfg.pmiss))
+    handle.write('Pmiss={}\n'.format(cfg.pmissa))
     handle.write('Est_Algo={}\n'.format(cfg.estalgo))
     handle.write('NOMP: OSPS={}, n_pfa={}, n_Rc={}\n'.format(cfg.osps,cfg.n_pfa,cfg.n_Rc))
     handle.write('GA-DFS: ag_pfa={}, al_pfa={}\n'.format(cfg.ag_pfa, cfg.al_pfa))

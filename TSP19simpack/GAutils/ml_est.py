@@ -350,7 +350,7 @@ def iterative_prune_pht(garda, sensors, cfgp, Nob=1e2): # Phantom based MLE
             sigs.append(sig)
             glen.append(sum(len(g.r) for g in garda_sel))
         else:
-            print('Degenerate Case!' cluster_center.state)
+            print('Degenerate Case!', cluster_center.state)
         L3[1] += len(pht_all)
     L3[0]=sum(glen)
     return sigs, glen, L3#, llr_val, centers

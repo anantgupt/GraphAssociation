@@ -25,13 +25,12 @@ snra = -10*np.ones(Ninst)
 Nsensa = 4*np.ones(Ninst, dtype='int')
 Noba = 10*np.ones(Ninst, dtype='int')  # number of targets
 swidtha = 4*np.ones(Ninst, dtype='int') # Array width
-pmiss=0.05 # Miss probability
+pmissa=0.05*np.ones(Ninst) # Miss probability
 # Iterable descriptors
 rng_used = Nsensa
 xlbl = 'Num sensors' #'SNR (dB)' # 'Num objects', 'Num sensors'
 # Scalars
 sep_th = 1 # Separation threshold
-pmiss=0.05 #Prob of missing target at sensors
 rd_wt = [1,1] # Range doppler relative weighting for likelihood, NLLS (Selection purposes)
 all_pht = True # All possible pht or only consecutive pairs
 static_snapshot = 1
