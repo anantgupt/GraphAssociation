@@ -68,7 +68,7 @@ def main():
         
     np.random.seed(28)
     seeda = np.random.randint(1000, size=Nf)
-    print('Seeds used:',seeda)
+    # print('Seeds used:',seeda)
     # TODO NOTE: Min threshold might not be satisfied for all sensors!!
     scenea = [pr.init_random_scene(max(Noba), sensorsa, cfg.sep_th, seeda[f]) for f in range(Nf)]
 

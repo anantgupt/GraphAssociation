@@ -1,12 +1,17 @@
-from IPython import get_ipython
+import os, subprocess
 
-if __name__ == "__main__":
-    __spec__ = None
-    ipython = get_ipython()
-    ipython.magic('%load_ext autoreload')
-    ipython.magic('%autoreload 2')    
-    ipython.magic('%run script_all.py ')
-    ipython.magic('%run script_all1.py ')
-    ipython.magic('%run script_all2.py ')
-    ipython.magic('%run script_all3.py ')
-    ipython.magic('%run script_all4.py ')
+subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50'])
+subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50'])
+
+subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50','--sep_th','1'])
+subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50','--sep_th','1'])
+
+subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50','--sep_th','1','--pmiss','0'])
+subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50','--sep_th','1','--pmiss','0'])
+
+
+subprocess.call(['python', 'script_all1.py', '--mode', 'SPEKF','--N_avg','50'])
+subprocess.call(['python', 'script_all1.py', '--mode', 'SPEKF-heap','--N_avg','50'])
+
+subprocess.call(['python', 'script_all1.py', '--mode', 'mcf_all','--N_avg','50'])
+subprocess.call(['python', 'script_all1.py', '--mode', 'mcf','--N_avg','50'])
