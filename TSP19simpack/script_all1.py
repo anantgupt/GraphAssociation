@@ -123,9 +123,7 @@ def main():
     run_it(datef,pmiss_rng2,'Nsens','pmiss')   
     ################
     ## DFT
-    datef2 =('results'+str(date.today().month)+str(date.today().day)
-        +'_'+str(datetime.now().hour)+str(datetime.now().minute)
-        +str(np.random.randint(100))+args.mode+'/DFT_fig_')
+    datef2 =datef+'DFT_'
     ################
     rob_rng2 = [0, 1, 2, 100]
     cfg.estalgo = 1
