@@ -19,7 +19,7 @@ for (path, folder, files) in os.walk('.'):
 					if par[:4]=='mode':
 						mode = par[5:].strip()
 					if par[:5]=='Pmiss':
-						pmiss = str(par[6:]).strip()
+						pmiss = str(par[6:]).strip().split()[0]
 				tbl[(mode, sep_th+', '+pmiss)] = fname
 				# print('\x1b[1;33;40m Removed ',target,'\x1b[0m')
 			except:

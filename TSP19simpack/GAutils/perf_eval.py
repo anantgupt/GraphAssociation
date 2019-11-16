@@ -40,13 +40,14 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
     # compute the OSPA metric
     total_loc, ospa_loc = 0,0
     err_pos, err_vel =0,0
+    c = 5*np.sqrt(min([np.sum(sensor.getnominalCRB()) for sensor in sensors]))
     n = max(len(est_scene), len(true_scene)) # Total est count
     m = min(len(est_scene), len(true_scene)) # Count for err_pos, err_vel
     ntrue = 0 # Total targets estimated close to truth
     PVerror = np.zeros((len(true_scene),2))
     for dn, (i,j) in enumerate(zip(row_ind, col_ind)):
         ct, cp, cv = compute_pos_error(est_scene[i], true_scene[j], loc_wt)
-        if ct<MISS_THRESHOLD: # Declare miss otherwise
+        if ct<c: # Declare miss otherwise
             total_loc += ct**p
             ospa_loc += min(ct**p,c**p)
             err_pos += cp

@@ -344,14 +344,23 @@ def iterative_prune_pht(garda, sensors, cfgp, Nob=1e2): # Phantom based MLE
         rid = np.argmax(ph_llr)
         cluster_center = pht_all[rid]
         garda_sel, sig = reduce_gard(garda_sel, sensors, cluster_center, cfgp['rd_wt'])
-        if sig.N>1:
-            centers.append(cluster_center)
-            llr_val.append(ph_llr[rid])
-            sigs.append(sig)
-            glen.append(sum(len(g.r) for g in garda_sel))
-        else:
-            print('Degenerate Case!', cluster_center.state)
+        if sig:
+            if sig.N>1:
+                centers.append(cluster_center)
+                llr_val.append(ph_llr[rid])
+                sigs.append(sig)
+                glen.append(sum(len(g.r) for g in garda_sel))
+            else:
+                print('Degenerate Case!', cluster_center.state)
         L3[1] += len(pht_all)
+    # if not sigs: # If no feasible target found, create fake signature at origin
+    #     for sid, sensor in enumerate(sensors):
+    #         if sid==0:
+    #             sig_rnd = ob.SignatureTracks(np.sqrt(sensor.x**2+0.01), 0, sid, 1)
+    #         else:
+    #             sig_rnd.add_update3(np.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
+    #     sel_sigs.append(sig_rnd)
+    #     print('.',end='')#print('No Feasible Targets Found (choosing (0,0.1)). ')
     L3[0]=sum(glen)
     return sigs, glen, L3#, llr_val, centers
 def reduce_gard(garda_ref, sensors, target, w, sindx=[]):# NOTE: Should only delete gard's from sensors that observe them
@@ -360,10 +369,10 @@ def reduce_gard(garda_ref, sensors, target, w, sindx=[]):# NOTE: Should only del
     for sid in sindx:
         if not len(garda_ref[sid].r): # If this sensor has no meas left, skip to next
             continue
-        x = (sensors[sid].x-target.x)
-        y = (sensors[sid].y-target.y)
-        vx = (sensors[sid].vx-target.vx)
-        vy = (sensors[sid].vy-target.vy)
+        x = (target.x-sensors[sid].x)
+        y = (target.y-sensors[sid].y)
+        vx = (target.vx-sensors[sid].vx)
+        vy = (target.vy-sensors[sid].vy)
         pos = [x,y,vx,vy]
         err = (w[0]*(garda_ref[sid].r - gm.r_eval(pos))**2+w[1]*(garda_ref[sid].d - gm.d_eval(pos))**2)
         rid = np.argmin(err)

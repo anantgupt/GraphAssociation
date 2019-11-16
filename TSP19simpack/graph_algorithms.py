@@ -171,7 +171,7 @@ for f in range(Nf):  # Loop over frames
                 'rd_wt':cfg.rd_wt,
                 'static_snapshot': cfg.static_snapshot,
                 'sep_th':cfg.sep_th,
-                'pmiss':cfg.pmiss,
+                'pmiss':cfg.pmissa[0],
                 'estalgo':cfg.estalgo, 
                 'osps':cfg.osps,
                 'n_Rc':cfg.n_Rc,

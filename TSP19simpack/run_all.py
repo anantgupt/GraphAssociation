@@ -1,10 +1,10 @@
 import os, subprocess
 
-subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50'])
-subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50'])
+# subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50'])
+subprocess.call(['python', 'script_all2.py', '--mode', 'mle','--N_avg','50'])
 
-subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50','--sep_th','1'])
-subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50','--sep_th','1'])
+# subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50','--sep_th','1'])
+subprocess.call(['python', 'script_all2.py', '--mode', 'mle','--N_avg','50','--sep_th','1'])
 
 subprocess.call(['python', 'script_all1.py', '--mode', 'Relax','--N_avg','50','--sep_th','1','--pmiss','0'])
 subprocess.call(['python', 'script_all1.py', '--mode', 'mle','--N_avg','50','--sep_th','1','--pmiss','0'])

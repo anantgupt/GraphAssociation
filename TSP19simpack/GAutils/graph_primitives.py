@@ -781,27 +781,27 @@ def get_minpaths(G, sensors, mode, cfgp):
     if mode=='Brute':
         sel_sigs = visit_selsigs(G, sel_sigs)
         
-    if not sel_sigs: # If no signature could be found, try finding any feasible path
-        flag = False
-        if False: # Don't try to find feasible paths, doing this will increasing pos-vel error
-            for i, sobs in enumerate(G):
-                for pid, sobc in enumerate(sobs): 
-                    sig_rnd = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)
-                    if get_rndsig(G, sobc, sig_rnd, sel_sigs, [pid], sensors):
-                        flag = True
-                        break
-                if flag:
-                    break
-        if not sel_sigs: # If no feasible target found, create fake signature at origin
-            for sid, sensor in enumerate(sensors):
-                if sid==0:
-                    sig_rnd = ob.SignatureTracks(np.sqrt(sensor.x**2+0.01), 0, sid, 1)
-                else:
-                    sig_rnd.add_update3(np.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
-            sel_sigs.append(sig_rnd)
-            print('.',end='')#print('No Feasible Targets Found (choosing (0,0.1)). ')
-        else:
-            print('o',end='')#print('No Targets Found (choosing random feasible path). ')
+    # if not sel_sigs: # If no signature could be found, try finding any feasible path
+    #     flag = False
+    #     if False: # Don't try to find feasible paths, doing this will increasing pos-vel error
+    #         for i, sobs in enumerate(G):
+    #             for pid, sobc in enumerate(sobs): 
+    #                 sig_rnd = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)
+    #                 if get_rndsig(G, sobc, sig_rnd, sel_sigs, [pid], sensors):
+    #                     flag = True
+    #                     break
+    #             if flag:
+    #                 break
+    #     if not sel_sigs: # If no feasible target found, create fake signature at origin
+    #         for sid, sensor in enumerate(sensors):
+    #             if sid==0:
+    #                 sig_rnd = ob.SignatureTracks(np.sqrt(sensor.x**2+0.01), 0, sid, 1)
+    #             else:
+    #                 sig_rnd.add_update3(np.sqrt(sensor.x**2+0.01), 0, 1, sid, sensors)
+    #         sel_sigs.append(sig_rnd)
+    #         print('.',end='')#print('No Feasible Targets Found (choosing (0,0.1)). ')
+    #     else:
+    #         print('o',end='')#print('No Targets Found (choosing random feasible path). ')
             
     return sel_sigs, glen, L3
 

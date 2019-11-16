@@ -266,7 +266,7 @@ def get_mcfsigs(garda, sensors, cfgp):
 	E=tracker.mcf.NumArcs()
 	glen.append(glen[0]-sum(sg.N for sg in sigs))
 	L3a = int(V*E*math.log(V)) # Haque S.O.T.A. Slide 20
-	return sigs, glen, [L3a, self.L3]
+	return sigs, glen, [L3a, tracker.L3]
 
 	# EXtract using Ns iteration ignoring flow length
 def get_mcfsigs_all(garda, sensors, cfgp):
@@ -340,7 +340,7 @@ def get_mcfsigs_all(garda, sensors, cfgp):
 	V=tracker.mcf.NumNodes()
 	E=tracker.mcf.NumArcs()
 	
-	return sigs, glen, [L3a, self.L3]
+	return sigs, glen, [L3a, tracker.L3]
 
 def reduce_gard(garda, sensors, sigs):
 	# Creates graph from all obs in garda excluding those used in sigs
