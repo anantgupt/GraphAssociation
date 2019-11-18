@@ -322,7 +322,7 @@ def associate_garda(garda, sensors, rho=1e5): # Enumerates all possible pairs
         sel_range = garda[sel_sensor].r
         sel_dop = garda[sel_sensor].d
         for i, (ri,di) in enumerate(zip(sel_range,sel_dop)):
-            for j in range(sel_sensor+1,min(Ns,sel_sensor+1+rho)):
+            for j in range(sel_sensor+1,min(Ns,sel_sensor+2+rho)):
                 for (rj,dj) in zip(garda[j].r, garda[j].d):
                     obj = pr.get_pos_from_rd(ri, rj, di, dj, sel_sensor , j, sensors)
                     if obj:
