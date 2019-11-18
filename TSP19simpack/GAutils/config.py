@@ -9,6 +9,7 @@ import numpy as np
 
 ## Fixed
 debug_plots = False # Debugging plots
+movie = False # Generate MOvie of simulation (Requires FFMPEG)
 scene_plots = False
 
 Nf =5

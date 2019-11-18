@@ -41,6 +41,7 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
     total_loc, ospa_loc = 0,0
     err_pos, err_vel =0,0
     c = 5*np.sqrt(min([np.sum(sensor.getnominalCRB()) for sensor in sensors]))
+    c_pen = 1 # Penalty for miss: 1
     n = max(len(est_scene), len(true_scene)) # Total est count
     m = min(len(est_scene), len(true_scene)) # Count for err_pos, err_vel
     ntrue = 0 # Total targets estimated close to truth
@@ -57,8 +58,8 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
         else:
             total_loc += 0
             ospa_loc += 0
-            err_pos += (c/2)**p
-            err_vel += (c/2)**p
+            err_pos += (c_pen/2)**p
+            err_vel += (c_pen/2)**p
             PVerror[j,:]=[cp, cv] #[(c/2)**p,(c/2)**p]
     if m==0:# If nothing good found, give out 1 target
         virt_trgt = ob.PointTarget(0, 0.1, 0, 0)
@@ -73,7 +74,7 @@ def compute_ospa(true_scene0, est_scene, sensors, gardat=[], loc_wt=[1,1,1,1], p
 #    err_cn += len(est_scene)-len(true_scene) #(float(c**p*(n-m))/n)**(1/p)
     err_loc = (float(total_loc)/max(ntrue,1))**(1/p) 
     err_pos, err_vel = np.sqrt(float(err_pos)/m) , np.sqrt(float(err_vel)/m)
-    ospa_err = ( float(ospa_loc + max(n-ntrue,0)* (c**p)) / n)**(1/p) # If n>m count extra misses
+    ospa_err = ( float(ospa_loc + max(n-ntrue,0)* (c_pen**p)) / n)**(1/p) # If n>m count extra misses
     ospa_tuple = np.array([ospa_err,err_loc, len(est_scene)-len(true_scene), ntrue, err_pos]) 
     return ospa_tuple, PVerror
     

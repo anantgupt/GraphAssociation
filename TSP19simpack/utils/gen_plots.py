@@ -35,8 +35,8 @@ params = {
 #    'text.fontsize': 8, # was 10
     'legend.fontsize': 8, # was 10
     'xtick.labelsize': 8,
-    'ytick.labelsize': 8,
-    'text.usetex': True,
+    'ytick.labelsize': 8, # 'backend': 'ps',
+    'text.usetex': True,# 'text.latex.preamble': ['\\usepackage{gensymb}'],
     'font.size': 8,
     'font.family': 'serif',
     'figure.dpi': 300,
