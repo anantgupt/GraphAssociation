@@ -36,5 +36,5 @@ th = [[None for _ in (columns)] for _ in (rows)]
 for (t, v) in tbl.items():
 	th[rows.index(t[0])][columns.index(t[1])] = v
 pda2 = pandas.DataFrame(th, rows, columns)
-print(pda2)
+print(pda2.T)
 # print(th)

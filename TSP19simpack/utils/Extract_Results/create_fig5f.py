@@ -11,13 +11,12 @@ import pickle as pl
 import numpy as np
 
 # Load figure from disk and display
-def cf5b(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
+def cf5f(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
     #fig_handle = pl.load(open('results6_14/fig_obj_est2/plot4.pickle','rb'))
-    fig_handle1 = pl.load(open('fig_Nsens-rob0/plot3.pickle','rb'))
-    fig_handle2 = pl.load(open('fig_Nsens-rob1/plot3.pickle','rb'))
-    fig_handle3 = pl.load(open('fig_Nsens-rob2/plot3.pickle','rb'))
-    fig_handle4 = pl.load(open('fig_Nsens-rob3/plot3.pickle','rb'))
-    fig_handle5 = pl.load(open('fig_Nsens-rob4/plot3.pickle','rb'))
+    fig_handle1 = pl.load(open('fig_Nsens-pmiss0_0/plot3.pickle','rb'))
+    fig_handle2 = pl.load(open('fig_Nsens-pmiss0_2/plot3.pickle','rb'))
+    fig_handle3 = pl.load(open('fig_Nsens-pmiss0_4/plot3.pickle','rb'))
+    fig_handle4 = pl.load(open('fig_Nsens-pmiss0_6/plot3.pickle','rb'))
     
     #fig_handle3 = pl.load(open('fig_snr-Nob21/plot2.pickle','rb'))
     
@@ -29,16 +28,14 @@ def cf5b(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
         mse2[i] = fig_handle2.axes[i*2].lines[0].get_data()[1]
         mse3[i] = fig_handle3.axes[i*2].lines[0].get_data()[1]
         mse4[i] = fig_handle4.axes[i*2].lines[0].get_data()[1]
-        mse5 = fig_handle5.axes[i*2].lines[0].get_data()[1]
         
-        ax[i].plot(rng, mse1[i], 'g-', label=mode+r', $\rho=0$')
+        ax[i].plot(rng, mse1[i], 'r-', label=mode+r', $P_{miss}=0$')
     
-        ax[i].plot(rng, mse2[i], 'g-.', label=mode+r', $\rho=1$')
+        ax[i].plot(rng, mse2[i], 'b.-', label=mode+r', $P_{miss}=0.2$')
 
-        ax[i].plot(rng, mse3[i], 'g-+', label=mode+r', $\rho=2$')
+        ax[i].plot(rng, mse3[i], 'g+-', label=mode+r', $P_{miss}=0.4$')
     
-        ax[i].plot(rng, mse4[i], 'g-x', label=mode+r', $\rho=3$')
-        ax[i].plot(rng, mse5, 'g-v', label=mode+r', $\rho=4$')
+        ax[i].plot(rng, mse4[i], 'mx-', label=mode+r', $P_{miss}=0.6$')
 
         ax[i].legend(loc='best'),ax[i].grid(True);ax[i].set_xlabel(fig_handle1.axes[2*i].get_xlabel());
         ax[i].set_title(fig_handle1.axes[2*i].get_title());ax[i].set_ylabel(fig_handle1.axes[2*i].get_ylabel())
@@ -57,5 +54,5 @@ def cf5b(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
         for text in axi.get_legend().get_texts(): text.set_fontsize(font_size)
     
     fig.set_tight_layout(True)
-    pl.dump(fig, open("Sel_figs/plot_OSPA_vs_Nsens-rob.pickle", "wb"))
-    fig.savefig('Sel_figs/plot_OSPA_vs_Nsens-rob.pdf')
+    pl.dump(fig, open("Sel_figs/plot_OSPA_vs_Nsens-pmiss.pickle", "wb"))
+    fig.savefig('Sel_figs/plot_OSPA_vs_Nsens-pmiss.pdf')

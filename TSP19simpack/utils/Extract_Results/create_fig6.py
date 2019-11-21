@@ -13,9 +13,9 @@ import numpy as np
 # Load figure from disk and display
 def cf6(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
     #fig_handle = pl.load(open('results6_14/fig_obj_est2/plot4.pickle','rb'))
-    fig_handle1 = pl.load(open('fig_rob-swidth0.2/plot3.pickle','rb'))
-    fig_handle2 = pl.load(open('fig_rob-swidth0.4/plot3.pickle','rb'))
-    fig_handle3 = pl.load(open('fig_rob-swidth0.8/plot3.pickle','rb'))
+    fig_handle1 = pl.load(open('fig_rob-swidth0_2/plot3.pickle','rb'))
+    fig_handle2 = pl.load(open('fig_rob-swidth0_5/plot3.pickle','rb'))
+    fig_handle3 = pl.load(open('fig_rob-swidth1/plot3.pickle','rb'))
     #fig_handle4 = pl.load(open('fig_rob-swidth0.8/plot3.pickle','rb'))
     
     #fig_handle3 = pl.load(open('fig_snr-Nob21/plot2.pickle','rb'))
@@ -32,8 +32,8 @@ def cf6(mode = 'Relax', width = 3.45, height = 2.6, font_size = 8):
         mse3 = fig_handle3.axes[2].lines[0].get_data()[1]
         
     ax.plot(rng, mse1, 'r-', label=mode+', Width=0.2m')
-    ax.plot(rng, mse2, 'b-', label=mode+', Width=0.4m')
-    ax.plot(rng, mse3, 'g-', label=mode+', Width=0.8m')
+    ax.plot(rng, mse2, 'b-', label=mode+', Width=0.5m')
+    ax.plot(rng, mse3, 'g-', label=mode+', Width=1m')
     #ax.plot(rng, mse4[0], 'b--s', label='Brute, Rob=1')
     #    ax[i].plot(rng, mse3, 'r-', label='RMSE Nob=21')
     ax.legend(loc='best'),ax.grid(True);ax.set_xlabel('Robustness level');
