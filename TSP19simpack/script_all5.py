@@ -68,7 +68,7 @@ def main():
 
     ##################
     # Nob vs SNR
-    Nob_rng2 = [1,10, 20, 30]
+    Nob_rng2 = [1, 20]
     set_it(1, snr_rng, [0,2,4,5],[rob_std, Nsens_std, swidth_std, pmiss_std])
     run_it(datef, Nob_rng2, 'snr','Nob')
     ##################
@@ -77,55 +77,17 @@ def main():
     set_it(3, Nob_rng, [0,2,4,5],[rob_std, Nsens_std, swidth_std, pmiss_std])
     run_it(datef, snr_rng2, 'Nob','snr')
     #################
-    Nsens_std2 = 6
-    rob_rng2 = [0, 1, 2, 20]
-    pmiss_std2 = 0.2
-    # # Rob vs Nob 
-    set_it(3, Nob_rng, [1,2,4,5],[snr_std, Nsens_std, swidth_std, pmiss_std2])
-    run_it(datef, rob_rng2,'Nob','rob')
-    #################
     Nsens_rng2 = [4,8]
     # Nsens vs Nob
     set_it(3, Nob_rng, [0,1,4,5],[rob_std, snr_std, swidth_std, pmiss_std3])
     run_it(datef, Nsens_rng2,'Nob','Nsens')
     ####################
     Nob_rng2 = [10, 20]
-    Nsens_rng3 = [4,6,8,10]
+    Nsens_rng3 = [4,6,8,12,16]
     # Nob vS Nsens
     set_it(2, Nsens_rng3, [0,1,4,5],[rob_std, snr_std, swidth_std,pmiss_std3])
     run_it(datef, Nob_rng2,'Nsens','Nob')
-    ################
-#    swidth_rng2 = [0.1, 0.2, 0.4, 0.8]
-    Nsens_std2= 6
-    # Rob vS swidth
-    set_it(4, swidth_rng, [1,3,2,5],[snr_std, Nob_std, Nsens_std2, pmiss_std2])
-    run_it(datef, [0,1,2,4,6],'swidth','rob')
-    ################
-    # swidth_rng2 = [0.2, 0.5, 1, 2]
-    # Nsens_std2= 6
-    # # swidth vS Rob
-    # set_it(0, np.arange(0,Nsens_std2-1), [1,3,2,5],[snr_std, Nob_std, Nsens_std2,pmiss_std])
-    # run_it(datef, swidth_rng2,'rob','swidth')
-    ################
-    Nsens_rng2 = np.array([4,5,6,8,10,12])
-    # Rob vS Nsens
-    set_it(2, Nsens_rng2, [1,3,4,5],[snr_std, Nob_std, swidth_std,pmiss_std2])
-    run_it(datef, np.arange(0,5),'Nsens','rob')
-    ################
-    Nsens_rng2 = [4,6,8]
-    # Nsens vS swidth
-    set_it(4, swidth_rng, [0,1,3,5],[rob_std, snr_std, Nob_std,pmiss_std3])
-    run_it(datef, Nsens_rng2,'swidth','Nsens')
-    ###############
-    pmiss_rng = np.linspace(0,0.8,9)
-    Nsens_std2 = 6
-    # Rob vs Pmiss
-    set_it(5, pmiss_rng, [1,3,4,2],[snr_std, Nob_std, swidth_std,Nsens_std2])
-    run_it(datef,[0,2,4,8],'pmiss','rob')    
-    pmiss_rng2 = np.round(np.linspace(0,0.6,4),3)
-    # Pmiss vs Nsens
-    set_it(2, Nsens_rng2, [1,3,4,0],[snr_std, Nob_std, swidth_std,rob_std])
-    run_it(datef,pmiss_rng2,'Nsens','pmiss')   
+   
     ################
     ## DFT
     datef2 =datef+'DFT_'
@@ -136,16 +98,20 @@ def main():
     set_it(3, Nob_rng, [0,2,4,5],[rob_std, Nsens_std, swidth_std,pmiss_std])
     run_it(datef2, snr_rng2,'Nob','snr')
     ################
+    Nsens_rng2 = [4,8]
+    # Nsens vs Nob
+    set_it(3, Nob_rng, [0,1,4,5],[rob_std, snr_std, swidth_std, pmiss_std3])
+    run_it(datef2, Nsens_rng2,'Nob','Nsens')
+    ################
+    # Nob vS snr
+    set_it(1, snr_rng, [0,2,4,5],[rob_std, Nsens_std, swidth_std, pmiss_std])
+    run_it(datef2, Nob_rng2,'snr','Nob')
+    ####################
     Nob_rng2 = [10, 20]
     Nsens_rng3 = [4,6,8,12,16]
     # Nob vS Nsens
     set_it(2, Nsens_rng3, [0,1,4,5],[rob_std, snr_std, swidth_std,pmiss_std3])
     run_it(datef2, Nob_rng2,'Nsens','Nob')
-    ################
-    # Nob vS snr
-    set_it(1, snr_rng, [0,2,4,5],[rob_std, Nsens_std, swidth_std, pmiss_std])
-    run_it(datef2, Nob_rng2,'snr','Nob')
-
     
 if __name__ == "__main__":
     __spec__ = None

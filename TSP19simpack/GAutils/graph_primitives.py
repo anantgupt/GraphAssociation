@@ -384,7 +384,7 @@ def Relax2(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     return glen, L3
 
 
-def Rel3(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
+def Rellr(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
     G = cp.copy(Gfix)
     scale = cfgp['hscale']
     hN = cfgp['hN']
@@ -400,18 +400,19 @@ def Rel3(Gfix, sel_sigs, sensors, glen, cfgp): # recursive implementation
         
     for h in range(hN):
 #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
+        lg_thres_t = lg_thres
         for _ in range(4):
             for i in range(Ns-minP+1):
                 sobs = G[i]
                 for pid, sobc in enumerate(sobs):
         #            print(G[ind].val)
                     sig_origin = ob.SignatureTracks(sobc.r, sobc.d, i, sobc.g)# create new signature
-                    L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres, opt=[False,False,False] )
+                    L3+=DFS(G, sobc, sig_origin, sel_sigs, [pid], sensors, cfgp, minP, hq, lg_thres_t, opt=[False,False,False] )
             G, stopping_cr = remove_scc(G, sensors)# Add skip connection
             glen.append(sum(len(g) for g in G))
             if stopping_cr:# Until path of length minP left in Graph
                 break
-            lg_thres=[lgt*sc for (lgt,sc) in zip(lg_thres, scale)] # Relax LLR thres outer loop
+            lg_thres_t=[lgt*sc for (lgt,sc) in zip(lg_thres_t, scale)] # Relax LLR thres outer loop
         if minP>=min_chain_leng: # Might wanna use the heap here for speed.
             minP-=1
         else:
@@ -750,7 +751,7 @@ def get_minpaths(G, sensors, mode, cfgp):
     sel_sigs =[] # Note: wt includes the crb_min for range, doppler
     L3 = 0
     glen = [sum(len(g) for g in G)]
-    dispatcher ={'DFS':DFS, 'Brute': Brute, 'SPEKF': Relax, 'Relax': Relax,'Rel3': Rel3, 'Brute_iter': Brute_iter}
+    dispatcher ={'DFS':DFS, 'Brute': Brute, 'SPEKF': Relax, 'Relax': Relax,'Rellr': Rellr, 'Brute_iter': Brute_iter}
     if mode in ['DFS','Brute']:
         for i, sobs in enumerate(G):
             for pid, sobc in enumerate(sobs):
@@ -768,7 +769,7 @@ def get_minpaths(G, sensors, mode, cfgp):
             if sig!=None:
                 sig_new.append(sig)
         sel_sigs= sig_new
-    if mode =='Rel3':
+    if mode =='Rellr':
         glen, L3 = dispatcher[mode[:5]](G, sel_sigs, sensors, glen, cfgp)
     if mode[:5]=='Relax' or mode[:5]=='SPEKF':#Run with relaxed params
         if mode[-4:]=='heap':

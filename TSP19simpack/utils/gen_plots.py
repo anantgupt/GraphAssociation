@@ -40,6 +40,7 @@ import Extract_Results.create_fig6b as cf6b
 
 import Extract_Results.create_fig7 as cf7 
 import Extract_Results.create_fig7b as cf7b 
+import Extract_Results.create_fig7c as cf7c
 import Extract_Results.create_fig8 as cf8 
 import Extract_Results.create_fig9 as cf9
 
@@ -86,7 +87,7 @@ def main():
                 'cf5':'{},{}'.format(width,height),
                 'cf5a':sz21b,'cf5b':sz21b,'cf5c':sz21b,'cf5d':sz21b,'cf5e':sz21b,'cf5f':sz21b,
                 'cf6':'{},{}'.format(width,height),'cf6b':'{},{}'.format(width,1.6*height),
-                'cf7':'7','cf7b':'',
+                'cf7':'7','cf7b':'','cf7c':'',
                 'cf4dft':sz21,'cf5adft':sz21b,
                 'cf9':'7'}
     try:

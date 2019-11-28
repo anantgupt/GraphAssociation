@@ -64,7 +64,7 @@ def run_snapshot(scene, sensors, snr, cfgp, seed =int.from_bytes(os.urandom(4), 
     if cfgp['estalgo'] == 0:
         garda_sel = ea.meth2(np.copy(beat), sensors, cfgp['Nsel'], [1,1])
     elif cfgp['estalgo'] == 1:
-        garda_sel = ea.meth2(np.copy(beat), sensors, cfgp['Nsel'], cfgp['osps'])
+        garda_sel = ea.meth2(np.copy(beat), sensors, cfgp['Nsel'], cfgp['osps'], cfgp['n_pfa'])
     elif cfgp['estalgo'] == 2:
         garda_sel = ea.nomp(np.copy(beat), sensors, cfgp['Nsel'], cfgp['osps'], cfgp['n_Rc'], cfgp['n_pfa'])
     runtime[0] = time.time() - t

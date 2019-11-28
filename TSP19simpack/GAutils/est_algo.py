@@ -7,7 +7,7 @@ from numpy import unravel_index
 import numpy as np
 from GAutils import objects as obt
 
-def meth2(y, sensors, Nob, osf=[16, 16], pfa=1e-3, eps=0.01):
+def meth2(y, sensors, Nob, osf=[16, 16], pfa=1e-3, eps=0.005):
     garda = []
     residue_list = [[] for _ in sensors]
     for i, sensor in enumerate(sensors):
@@ -36,7 +36,7 @@ def meth2(y, sensors, Nob, osf=[16, 16], pfa=1e-3, eps=0.01):
         garda.append(gard)
     return garda
     
-def nomp(y, sensors, Nob=[], osf=[16, 16], Nr=[1,3], pfa=1e-3, eps=0.01):
+def nomp(y, sensors, Nob=[], osf=[16, 16], Nr=[1,3], pfa=1e-3, eps=0.005):
     """
     osf: Oversampling for Range,doppler
     Nr: Refinement steps for single, cyclic ref.
