@@ -475,7 +475,7 @@ def Relax(Gfix, sel_sigs, sensors, glen, cfgp): # Slim version
         lg_thres[1][i]=-np.inf
     while hc<hN and minP>=min_chain_leng:
 #        print(lg_thres)
-        for h in range(cfgp['rob']+1): # was Ns - cfgp['Tlen']+1, range(hN)
+        for h in range(Ns- min_chain_leng+1): # was Ns - cfgp['Tlen']+1, range(hN)
     #        print('Graph has {} nodes.'.format(sum(len(g) for g in G)))
     #        lg_thres = np.array([[scale[0]*chi2.isf(cfgp['al_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)],
     #                    [scale[1]*chi2.isf(cfgp['ag_pfa'], 2*i, loc=0, scale=1) for i in range(1,Ns+1)]])
