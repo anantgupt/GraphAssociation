@@ -94,7 +94,7 @@ cfgp = {'Nsel': [],# Genie info on # targets
                 'rd_wt':cfg.rd_wt,
                 'static_snapshot': cfg.static_snapshot,
                 'sep_th':cfg.sep_th,
-                'pmiss':cfg.pmiss,
+                'pmiss':cfg.pmissa[0],
                 'estalgo':cfg.estalgo, 
                 'osps':cfg.osps,
                 'n_Rc':cfg.n_Rc,
@@ -216,10 +216,14 @@ for f in range(Nf):  # Loop over frames
         [new_pos, nlls_var] = gm.gauss_newton(sig, sensors, sig.state_end.mean , 5, rd_wt)
         sig.state_end.mean = new_pos
     rtime_algo["Graph"]= time.time()-t
+    
+    gr_ca = []
+    gr_ca2 = []        
     plt.figure(76)
     for gtr in min_gsigs1:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
+        gr_ca.append(ob.PointTarget(dob[0], dob[1], dob[2], dob[3]))
 #        print(dob, gtr.r)
     pr.plot_scene(plt, scene, sensors, 76, 'GA-DFS detects {} targets'.format(len(min_gsigs1)))
     for sig in min_gsigs3:
@@ -229,9 +233,15 @@ for f in range(Nf):  # Loop over frames
     for gtr in min_gsigs3:
         dob = gtr.state_end.mean
         plt.quiver(dob[0], dob[1], dob[2], dob[3],color='r')
+        gr_ca2.append(ob.PointTarget(dob[0], dob[1], dob[2], dob[3]))
         print(dob, gtr.r)
     pr.plot_scene(plt, scene, sensors, 75, 'Min cost Flow detects {} targets'.format(len(min_gsigs3)))
     #%%
+    plt.figure(203)
+    plt.subplot(1,2,1)
+    bp.draw_line_reduction(garda_sel, sensors, scene, gr_ca2, [], plt, 'Ga-DFS')
+    plt.subplot(1,2,2)
+    bp.draw_line_reduction2(garda_sel, sensors, scene, gr_ca2, [], plt, 'MCF')
     break # Stop here (Older code ahead)
     
     #########################
